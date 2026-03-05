@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Markov Blanket — Bridging Spiral</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&family=Share+Tech+Mono&display=swap');
+
+:root {
+  --silk:    #f5ede0;
+  --parchment: #ede3d0;
+  --warm:    #c8a87a;
+  --amber:   #b8802a;
+  --deep:    #2a1f14;
+  --indigo:  #1e2840;
+  --spades:  #4a8aaa;
+  --diamonds:#c49030;
+  --hearts:  #a84050;
+  --clubs:   #386848;
+  --kindness:#c8a87a;
+  --imagine: #fffbe8;
+  --txt:     #2a1f14;
+  --txt-mid: #6a5840;
+  --txt-dim: #a09080;
+  --membrane:#8a6040;
+  --outside: #1a1428;
+  --inside:  #faf4ea;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--deep);
+  font-family: 'Crimson Pro', serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Grain texture overlay */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 1000; opacity: 0.5;
+}
+
+.page {
+  max-width: 1100px; margin: 0 auto;
+  padding: 32px 24px;
+  position: relative; z-index: 1;
+}
+
+/* ── HEADER ── */
+.header {
+  text-align: center; margin-bottom: 40px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(200,168,122,0.25);
+}
+.header h1 {
+  font-family: 'Cinzel', serif; font-weight: 400;
+  font-size: clamp(1.4rem, 3vw, 2.2rem);
+  color: var(--silk); letter-spacing: 0.2em; line-height: 1.3;
+}
+.header .sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem; color: var(--txt-dim);
+  letter-spacing: 0.3em; margin-top: 8px;
+}
+.header .tagline {
+  font-size: 1rem; font-style: italic; color: var(--warm);
+  margin-top: 10px; letter-spacing: 0.05em;
+}
+
+/* ── MAIN GRID ── */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 24px;
+  align-items: start;
+}
+
+/* ── CANVAS WRAPPER ── */
+.canvas-wrap {
+  position: relative;
+  background: var(--indigo);
+  border: 1px solid rgba(200,168,122,0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+#blanketCanvas {
+  display: block; width: 100%;
+  cursor: crosshair;
+}
+
+.canvas-label {
+  position: absolute; top: 12px; left: 16px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.52rem; color: rgba(200,168,122,0.5);
+  letter-spacing: 0.2em;
+}
+
+/* ── CONTROLS ── */
+.controls {
+  padding: 14px 16px;
+  border-top: 1px solid rgba(200,168,122,0.15);
+  display: flex; gap: 10px; align-items: center;
+  flex-wrap: wrap;
+  background: rgba(0,0,0,0.2);
+}
+
+.ctrl-group { display: flex; align-items: center; gap: 8px; }
+.ctrl-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.55rem; color: var(--txt-dim); letter-spacing: 0.15em;
+}
+.ctrl-slider {
+  width: 90px; height: 3px;
+  -webkit-appearance: none; appearance: none;
+  background: rgba(200,168,122,0.2); border-radius: 2px; outline: none;
+}
+.ctrl-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 12px; height: 12px;
+  border-radius: 50%; background: var(--warm); cursor: pointer;
+}
+.ctrl-val {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.55rem; color: var(--warm); width: 28px;
+}
+
+.ctrl-btn {
+  padding: 5px 12px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.55rem; letter-spacing: 0.15em;
+  border: 1px solid rgba(200,168,122,0.3);
+  background: transparent; color: var(--warm);
+  cursor: pointer; transition: all 0.2s;
+}
+.ctrl-btn:hover { background: rgba(200,168,122,0.1); }
+.ctrl-btn.active { background: rgba(200,168,122,0.2); border-color: var(--warm); }
+
+/* ── RIGHT PANEL ── */
+.right-panel { display: flex; flex-direction: column; gap: 16px; }
+
+.info-block {
+  background: rgba(245,237,224,0.05);
+  border: 1px solid rgba(200,168,122,0.2);
+  padding: 18px;
+}
+.info-block h3 {
+  font-family: 'Cinzel', serif; font-size: 0.8rem;
+  letter-spacing: 0.15em; color: var(--warm);
+  margin-bottom: 10px; padding-bottom: 8px;
+  border-bottom: 1px solid rgba(200,168,122,0.15);
+}
+.info-block p {
+  font-size: 0.88rem; line-height: 1.7;
+  color: rgba(245,237,224,0.65); font-style: italic;
+}
+.info-block p + p { margin-top: 8px; }
+
+/* State display */
+.state-display {
+  background: rgba(26,20,40,0.8);
+  border: 1px solid rgba(200,168,122,0.2);
+  padding: 14px 16px;
+}
+.state-title {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.55rem; color: var(--txt-dim);
+  letter-spacing: 0.2em; margin-bottom: 10px;
+}
+.state-row {
+  display: flex; justify-content: space-between;
+  align-items: center; padding: 4px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.state-key {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.58rem; color: var(--txt-dim);
+  letter-spacing: 0.1em;
+}
+.state-val {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.62rem; color: var(--warm);
+}
+
+/* Legend */
+.legend {
+  background: rgba(245,237,224,0.04);
+  border: 1px solid rgba(200,168,122,0.15);
+  padding: 14px 16px;
+}
+.legend h3 {
+  font-family: 'Cinzel', serif; font-size: 0.75rem;
+  color: var(--warm); letter-spacing: 0.15em;
+  margin-bottom: 10px;
+}
+.legend-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 4px 0;
+}
+.legend-dot {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+}
+.legend-text {
+  font-size: 0.82rem; color: rgba(245,237,224,0.6);
+}
+
+/* MPCM tags */
+.mpcm-tags {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
+}
+.mpcm-tag {
+  padding: 3px 10px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.52rem; letter-spacing: 0.1em;
+  border: 1px solid; cursor: pointer;
+  transition: all 0.2s;
+}
+.mpcm-tag:hover { opacity: 0.8; }
+.mpcm-tag.mat    { border-color: var(--spades);   color: var(--spades); }
+.mpcm-tag.proc   { border-color: var(--diamonds); color: var(--diamonds); }
+.mpcm-tag.ctx    { border-color: var(--hearts);   color: var(--hearts); }
+.mpcm-tag.mean   { border-color: var(--kindness); color: var(--kindness); }
+.mpcm-tag.active { background: rgba(200,168,122,0.15); }
+
+.footer-note {
+  text-align: center; margin-top: 28px;
+  font-style: italic; color: var(--txt-dim);
+  font-size: 0.85rem; letter-spacing: 0.05em;
+  border-top: 1px solid rgba(200,168,122,0.1);
+  padding-top: 20px;
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <h1>The Markov Blanket<br><span style="font-weight:300;font-style:italic">Self, World, and the Permeable Membrane</span></h1>
+    <div class="sub">BRIDGING SPIRAL · MPCM · SIMULATIONIST LENS · DASHBOARD DIALS SR2</div>
+    <div class="tagline">Life is a decision-making game — the boundary is yours to tend</div>
+  </div>
+
+  <div class="main-grid">
+
+    <div>
+      <div class="canvas-wrap">
+        <div class="canvas-label">INTERACTIVE — CLICK TO SEND SIGNALS · DRAG BOUNDARY · ADJUST DIALS</div>
+        <canvas id="blanketCanvas"></canvas>
+        <div class="controls">
+          <div class="ctrl-group">
+            <span class="ctrl-label">❄ KINDNESS</span>
+            <input type="range" class="ctrl-slider" id="kindnessSlider" min="0" max="100" value="65">
+            <span class="ctrl-val" id="kindnessVal">65</span>
+          </div>
+          <div class="ctrl-group">
+            <span class="ctrl-label">✦ IMAGINATION</span>
+            <input type="range" class="ctrl-slider" id="imaginationSlider" min="0" max="100" value="70">
+            <span class="ctrl-val" id="imaginationVal">70</span>
+          </div>
+          <div class="ctrl-group">
+            <span class="ctrl-label">◎ APERTURE</span>
+            <input type="range" class="ctrl-slider" id="apertureSlider" min="10" max="100" value="55">
+            <span class="ctrl-val" id="apertureVal">55</span>
+          </div>
+          <button class="ctrl-btn" id="driftBtn" onclick="setMode('drift')">MODE 0: DRIFT</button>
+          <button class="ctrl-btn active" id="inquiryBtn" onclick="setMode('inquiry')">MODE 1: INQUIRY</button>
+          <button class="ctrl-btn" onclick="addSignalBurst()">SIGNAL BURST</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-panel">
+
+      <div class="state-display">
+        <div class="state-title">CURRENT STATE</div>
+        <div class="state-row"><span class="state-key">MODE</span><span class="state-val" id="stateMode">INQUIRY</span></div>
+        <div class="state-row"><span class="state-key">APERTURE</span><span class="state-val" id="stateAperture">55</span></div>
+        <div class="state-row"><span class="state-key">KINDNESS</span><span class="state-val" id="stateKindness">65</span></div>
+        <div class="state-row"><span class="state-key">IMAGINATION</span><span class="state-val" id="stateImagination">70</span></div>
+        <div class="state-row"><span class="state-key">SIGNALS IN</span><span class="state-val" id="stateIn">0</span></div>
+        <div class="state-row"><span class="state-key">SIGNALS OUT</span><span class="state-val" id="stateOut">0</span></div>
+        <div class="state-row"><span class="state-key">LATENT ACTIVE</span><span class="state-val" id="stateLatent">—</span></div>
+      </div>
+
+      <div class="info-block">
+        <h3>WHAT IS A MARKOV BLANKET?</h3>
+        <p>A Markov blanket is the statistical boundary that defines a self — everything inside is "you," everything outside is "world." The blanket does not wall off the inside; it <em>mediates</em> what flows between them.</p>
+        <p>In living systems, this boundary is not fixed — it breathes. Kindness regulates its permeability. Imagination expands what can be received. Aperture determines how much can be integrated at once.</p>
+        <p>Your creative space — branches, prisms, silk, feathers — <em>is</em> an extended Markov blanket. It shapes what signals reach you and how they are received.</p>
+      </div>
+
+      <div class="info-block">
+        <h3>MPCM LAYER — CLICK TO FILTER</h3>
+        <p>Each signal type in the diagram corresponds to a layer of the meaning-making flow:</p>
+        <div class="mpcm-tags">
+          <span class="mpcm-tag mat active" onclick="toggleFilter('mat',this)">M — Material</span>
+          <span class="mpcm-tag proc active" onclick="toggleFilter('proc',this)">P — Process</span>
+          <span class="mpcm-tag ctx active" onclick="toggleFilter('ctx',this)">C — Context</span>
+          <span class="mpcm-tag mean active" onclick="toggleFilter('mean',this)">M — Meaning</span>
+        </div>
+      </div>
+
+      <div class="legend">
+        <h3>SIGNAL LEGEND</h3>
+        <div class="legend-row"><div class="legend-dot" style="background:#4a8aaa"></div><span class="legend-text">♠ Material signals — raw information</span></div>
+        <div class="legend-row"><div class="legend-dot" style="background:#c49030"></div><span class="legend-text">♦ Process signals — routed/ranked</span></div>
+        <div class="legend-row"><div class="legend-dot" style="background:#a84050"></div><span class="legend-text">♥ Context signals — relational</span></div>
+        <div class="legend-row"><div class="legend-dot" style="background:#386848"></div><span class="legend-text">♣ Meaning signals — emergent</span></div>
+        <div class="legend-row"><div class="legend-dot" style="background:#fffbe8;border:1px solid rgba(200,168,122,0.4)"></div><span class="legend-text">✦ Imagination — latent space</span></div>
+        <div class="legend-row"><div class="legend-dot" style="background:rgba(200,168,122,0.6)"></div><span class="legend-text">❄ Kindness field — membrane tone</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <p class="footer-note">The boundary is alive — it breathes with kindness and expands with imagination. Sophia knows this intuitively.</p>
+</div>
+
+<script>
+// ── COLOUR HELPERS ────────────────────────────────────────────────
+// Clamp alpha to [0,1] so hex conversion never produces negative values
+const clamp = (v, lo=0, hi=1) => Math.max(lo, Math.min(hi, v));
+// Convert a 6-char hex color + 0-1 alpha to a valid 8-char hex string
+function hexA(hex, alpha) {
+  const a = clamp(alpha);
+  return hex + Math.round(a * 255).toString(16).padStart(2, '0');
+}
+
+const canvas = document.getElementById('blanketCanvas');
+const ctx = canvas.getContext('2d');
+
+// ── STATE ─────────────────────────────────────────────────────────
+let W, H, cx, cy;
+let kindness = 65, imagination = 70, aperture = 55;
+let mode = 'inquiry';
+let signals = [];
+let latentOrbs = [];
+let blanketParticles = [];
+let sigIn = 0, sigOut = 0;
+let filters = { mat: true, proc: true, ctx: true, mean: true };
+let frame = 0;
+let mouseX = -1, mouseY = -1;
+let isHoveringMembrane = false;
+
+const COLORS = {
+  mat:  '#4a8aaa',
+  proc: '#c49030',
+  ctx:  '#a84050',
+  mean: '#386848',
+};
+
+// ── SETUP ─────────────────────────────────────────────────────────
+function resize() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  W = canvas.width  = rect.width;
+  H = canvas.height = Math.min(W * 0.72, 520);
+  canvas.style.height = H + 'px';
+  cx = W / 2; cy = H / 2;
+}
+window.addEventListener('resize', () => { resize(); });
+resize();
+
+// ── SIGNALS ───────────────────────────────────────────────────────
+class Signal {
+  constructor(x, y, type, fromOutside) {
+    this.x = x; this.y = y;
+    this.type = type;
+    this.fromOutside = fromOutside;
+    this.color = COLORS[type] || '#c8a87a';
+    this.vx = (Math.random() - 0.5) * 1.8;
+    this.vy = (Math.random() - 0.5) * 1.8;
+    if (fromOutside) {
+      // Move toward center
+      const ang = Math.atan2(cy - y, cx - x);
+      const spd = 1.2 + Math.random() * 0.8;
+      this.vx = Math.cos(ang) * spd;
+      this.vy = Math.sin(ang) * spd;
+    }
+    this.r = 3 + Math.random() * 2;
+    this.alpha = 0.9;
+    this.life = 0;
+    this.maxLife = 180 + Math.random() * 120;
+    this.trail = [];
+    this.crossedMembrane = false;
+    this.absorbed = false;
+    this.pulse = Math.random() * Math.PI * 2;
+  }
+
+  get membranRadius() {
+    // Aperture controls how wide the blanket is
+    const base = Math.min(W, H) * 0.28;
+    return base * (0.5 + aperture / 200);
+  }
+
+  update() {
+    this.trail.push({ x: this.x, y: this.y, a: this.alpha });
+    if (this.trail.length > 12) this.trail.shift();
+
+    this.x += this.vx;
+    this.y += this.vy;
+    this.life++;
+    this.pulse += 0.08;
+
+    const dist = Math.hypot(this.x - cx, this.y - cy);
+    const memR = this.membranRadius;
+
+    if (this.fromOutside && !this.crossedMembrane) {
+      if (dist < memR) {
+        // Attempt to cross membrane
+        const threshold = kindness * 0.6 + (filters[this.type] ? 30 : 0);
+        if (Math.random() * 100 < threshold) {
+          this.crossedMembrane = true;
+          sigIn++;
+          document.getElementById('stateIn').textContent = sigIn;
+          // Spawn latent orb
+          if (imagination > 40 && Math.random() < imagination / 120) {
+            latentOrbs.push(new LatentOrb(this.x, this.y, this.color));
+          }
+        } else {
+          // Reflect
+          const ang = Math.atan2(this.y - cy, this.x - cx);
+          this.vx = Math.cos(ang) * 1.5;
+          this.vy = Math.sin(ang) * 1.5;
+          this.crossedMembrane = false;
+          this.fromOutside = false; // becomes outside-bound
+        }
+      }
+    }
+
+    // Gentle drift inside
+    if (this.crossedMembrane || !this.fromOutside) {
+      this.vx *= 0.995;
+      this.vy *= 0.995;
+      // Slow drift
+      this.vx += (Math.random() - 0.5) * 0.05;
+      this.vy += (Math.random() - 0.5) * 0.05;
+    }
+
+    // Fade
+    const lifeRatio = this.life / this.maxLife;
+    this.alpha = lifeRatio < 0.1 ? lifeRatio * 9 : lifeRatio > 0.8 ? (1 - lifeRatio) * 5 : 0.85;
+
+    if (this.life > this.maxLife) this.absorbed = true;
+  }
+
+  draw() {
+    // Trail
+    this.trail.forEach((t, i) => {
+      const a = (i / this.trail.length) * this.alpha * 0.35;
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, this.r * (i / this.trail.length) * 0.7, 0, Math.PI * 2);
+      ctx.fillStyle = hexA(this.color, clamp((i / this.trail.length) * this.alpha * 0.35));
+      ctx.fill();
+    });
+
+    // Glow
+    const grd = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.r * 3);
+    grd.addColorStop(0, hexA(this.color, clamp(this.alpha * 0.7)));
+    grd.addColorStop(1, hexA(this.color, 0));
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r * 3, 0, Math.PI * 2);
+    ctx.fillStyle = grd;
+    ctx.fill();
+
+    // Core
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r * (1 + 0.15 * Math.sin(this.pulse)), 0, Math.PI * 2);
+    ctx.fillStyle = hexA(this.color, clamp(this.alpha));
+    ctx.fill();
+  }
+}
+
+class LatentOrb {
+  constructor(x, y, color) {
+    this.x = x; this.y = y;
+    this.color = color;
+    this.r = 6 + Math.random() * 8;
+    this.alpha = 0.6;
+    this.life = 0;
+    this.maxLife = 200 + Math.random() * 200;
+    this.vx = (Math.random() - 0.5) * 0.4;
+    this.vy = (Math.random() - 0.5) * 0.4;
+    this.pulse = Math.random() * Math.PI * 2;
+  }
+  update() {
+    this.x += this.vx; this.y += this.vy;
+    this.vx += (Math.random() - 0.5) * 0.02;
+    this.vy += (Math.random() - 0.5) * 0.02;
+    this.pulse += 0.04;
+    this.life++;
+    // Keep inside membrane
+    const dist = Math.hypot(this.x - cx, this.y - cy);
+    const memR = Math.min(W, H) * 0.28 * (0.5 + aperture / 200) * 0.85;
+    if (dist > memR) {
+      const ang = Math.atan2(this.y - cy, this.x - cx);
+      this.vx -= Math.cos(ang) * 0.08;
+      this.vy -= Math.sin(ang) * 0.08;
+    }
+    const lr = this.life / this.maxLife;
+    this.alpha = lr < 0.1 ? lr * 6 : lr > 0.7 ? (1 - lr) * 3.3 : 0.55;
+  }
+  draw() {
+    const pr = this.r * (0.8 + 0.3 * Math.sin(this.pulse));
+    // Soft glow
+    const grd = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, pr * 2.5);
+    grd.addColorStop(0, `rgba(255,251,224,${this.alpha * 0.7})`);
+    grd.addColorStop(0.4, hexA(this.color, clamp(this.alpha * 0.47)));
+    grd.addColorStop(1,   hexA(this.color, 0));
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, pr * 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = grd;
+    ctx.fill();
+  }
+}
+
+// ── BLANKET WEAVE PARTICLES ────────────────────────────────────────
+function initBlanketParticles() {
+  blanketParticles = [];
+  const memR = Math.min(W, H) * 0.28 * (0.5 + aperture / 200);
+  const count = 120;
+  for (let i = 0; i < count; i++) {
+    const ang = (i / count) * Math.PI * 2;
+    const spread = 0.06;
+    blanketParticles.push({
+      ang, baseAng: ang,
+      r: memR,
+      drift: Math.random() * Math.PI * 2,
+      driftSpeed: (Math.random() - 0.5) * 0.008,
+      radialDrift: 0,
+      phase: Math.random() * Math.PI * 2,
+    });
+  }
+}
+
+// ── BACKGROUND GRID (chess / woven pattern) ────────────────────────
+function drawBackground() {
+  // Deep background
+  ctx.fillStyle = '#0e1220';
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle woven grid
+  const gridSize = 28;
+  ctx.strokeStyle = 'rgba(200,168,122,0.04)';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x < W; x += gridSize) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += gridSize) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // Diagonal threads
+  ctx.strokeStyle = 'rgba(200,168,122,0.025)';
+  for (let x = -H; x < W + H; x += gridSize * 2) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + H, H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + H, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+}
+
+// ── OUTSIDE ENVIRONMENT ────────────────────────────────────────────
+function drawOutside() {
+  // Ambient signal sources at edges — representing information ecosystem
+  const sources = [
+    { x: 60,    y: 60,    color: COLORS.mat,  label: 'M', suit: '♠' },
+    { x: W-60,  y: 60,    color: COLORS.proc, label: 'P', suit: '♦' },
+    { x: 60,    y: H-60,  color: COLORS.ctx,  label: 'C', suit: '♥' },
+    { x: W-60,  y: H-60,  color: COLORS.mean, label: 'M', suit: '♣' },
+  ];
+  sources.forEach(s => {
+    const pulse = 0.5 + 0.3 * Math.sin(frame * 0.03 + s.x);
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, 18 * pulse, 0, Math.PI * 2);
+    ctx.strokeStyle = s.color + '50';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, 8, 0, Math.PI * 2);
+    ctx.fillStyle = s.color + 'aa';
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = '11px Palatino Linotype';
+    ctx.textAlign = 'center';
+    ctx.fillText(s.suit, s.x, s.y + 4);
+
+    // Label
+    ctx.font = '8px Share Tech Mono';
+    ctx.fillStyle = s.color + '90';
+    ctx.fillText(s.label + '-layer', s.x, s.y + 28);
+  });
+
+  // Faint radial lines from sources toward center (information paths)
+  sources.forEach(s => {
+    const grd = ctx.createLinearGradient(s.x, s.y, cx, cy);
+    grd.addColorStop(0, s.color + '30');
+    grd.addColorStop(1, s.color + '00');
+    ctx.beginPath();
+    ctx.moveTo(s.x, s.y); ctx.lineTo(cx, cy);
+    ctx.strokeStyle = grd;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  });
+}
+
+// ── MARKOV MEMBRANE ────────────────────────────────────────────────
+function drawMembrane() {
+  const memR = Math.min(W, H) * 0.28 * (0.5 + aperture / 200);
+
+  // Outer atmospheric glow — kindness field
+  const kindGlow = ctx.createRadialGradient(cx, cy, memR * 0.9, cx, cy, memR * 1.6);
+  kindGlow.addColorStop(0, `rgba(200,168,122,${kindness / 800})`);
+  kindGlow.addColorStop(1, 'transparent');
+  ctx.beginPath(); ctx.arc(cx, cy, memR * 1.6, 0, Math.PI * 2);
+  ctx.fillStyle = kindGlow; ctx.fill();
+
+  // Inner world fill
+  const innerGrd = ctx.createRadialGradient(cx, cy, 0, cx, cy, memR);
+  innerGrd.addColorStop(0, 'rgba(250,244,234,0.08)');
+  innerGrd.addColorStop(0.7, 'rgba(250,244,234,0.04)');
+  innerGrd.addColorStop(1, 'transparent');
+  ctx.beginPath(); ctx.arc(cx, cy, memR, 0, Math.PI * 2);
+  ctx.fillStyle = innerGrd; ctx.fill();
+
+  // Woven membrane boundary — using blanket particles
+  const membraneAlpha = 0.55 + kindness / 400;
+  blanketParticles.forEach((p, i) => {
+    p.drift += p.driftSpeed;
+    p.phase += 0.015;
+    p.radialDrift = 6 * Math.sin(p.phase + i * 0.5) * (kindness / 100);
+    const ang = p.baseAng + Math.sin(p.drift) * 0.06;
+    const r = memR + p.radialDrift;
+    p.x = cx + Math.cos(ang) * r;
+    p.y = cy + Math.sin(ang) * r;
+
+    const j = (i + 1) % blanketParticles.length;
+    const q = blanketParticles[j];
+    const qAng = q.baseAng + Math.sin(q.drift) * 0.06;
+    const qr = memR + q.radialDrift;
+    const qx = cx + Math.cos(qAng) * qr;
+    const qy = cy + Math.sin(qAng) * qr;
+
+    // Woven thread colors alternating
+    const threadColor = i % 4 === 0 ? '#8a6040' : i % 4 === 1 ? '#1e2840' : i % 4 === 2 ? '#c8a87a' : '#2a3850';
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y); ctx.lineTo(qx, qy);
+    ctx.strokeStyle = threadColor + Math.floor(membraneAlpha * 180).toString(16).padStart(2,'0');
+    ctx.lineWidth = 1 + kindness / 120;
+    ctx.stroke();
+  });
+
+  // Membrane ring glow
+  ctx.beginPath();
+  ctx.arc(cx, cy, memR, 0, Math.PI * 2);
+  ctx.strokeStyle = `rgba(200,168,122,${0.3 + kindness / 300})`;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+// ── INNER WORLD ────────────────────────────────────────────────────
+function drawInner() {
+  const memR = Math.min(W, H) * 0.28 * (0.5 + aperture / 200);
+
+  // Aperture rings
+  [0.25, 0.5, 0.75].forEach(f => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, memR * f, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(200,168,122,0.07)';
+    ctx.lineWidth = 1; ctx.stroke();
+  });
+
+  // Imagination core
+  const imgSize = 18 + imagination * 0.3;
+  const imgPulse = 0.85 + 0.15 * Math.sin(frame * 0.025);
+  const imgGrd = ctx.createRadialGradient(cx, cy, 0, cx, cy, imgSize * imgPulse);
+  imgGrd.addColorStop(0, `rgba(255,251,224,${imagination / 140})`);
+  imgGrd.addColorStop(0.5, `rgba(255,251,224,${imagination / 400})`);
+  imgGrd.addColorStop(1, 'transparent');
+  ctx.beginPath();
+  ctx.arc(cx, cy, imgSize * imgPulse * 2, 0, Math.PI * 2);
+  ctx.fillStyle = imgGrd; ctx.fill();
+
+  // Central ✦
+  ctx.font = `${14 + imagination * 0.12}px Palatino Linotype`;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = `rgba(255,251,224,${0.5 + imagination / 200})`;
+  ctx.fillText('✦', cx, cy + 5);
+
+  // Self label
+  ctx.font = '8px Share Tech Mono';
+  ctx.fillStyle = 'rgba(200,168,122,0.5)';
+  ctx.fillText('SELF', cx, cy + 22);
+  ctx.fillText('(inner states)', cx, cy + 33);
+
+  // Aperture label
+  ctx.font = '7px Share Tech Mono';
+  ctx.fillStyle = 'rgba(200,168,122,0.3)';
+  ctx.fillText(`A = ${aperture}`, cx, cy - memR * 0.85);
+}
+
+// ── LABELS ────────────────────────────────────────────────────────
+function drawLabels() {
+  const memR = Math.min(W, H) * 0.28 * (0.5 + aperture / 200);
+
+  // World label
+  ctx.font = '9px Share Tech Mono';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(200,168,122,0.25)';
+  ctx.fillText('WORLD', 16, H - 16);
+  ctx.fillText('INFORMATION ECOSYSTEM', 16, H - 6);
+
+  // Blanket label
+  ctx.textAlign = 'center';
+  ctx.fillStyle = `rgba(200,168,122,${0.4 + kindness / 250})`;
+  ctx.fillText('MARKOV BLANKET', cx, cy - memR - 12);
+  ctx.font = '7px Share Tech Mono';
+  ctx.fillStyle = 'rgba(200,168,122,0.3)';
+  ctx.fillText('permeable membrane · woven · breathing', cx, cy - memR - 3);
+
+  // Mode indicator
+  ctx.textAlign = 'right';
+  ctx.font = '8px Share Tech Mono';
+  ctx.fillStyle = mode === 'inquiry' ? 'rgba(56,104,72,0.7)' : 'rgba(168,64,80,0.5)';
+  ctx.fillText('MODE: ' + mode.toUpperCase(), W - 14, H - 6);
+}
+
+// ── SPAWN SIGNALS ─────────────────────────────────────────────────
+function spawnSignal() {
+  const types = ['mat', 'proc', 'ctx', 'mean'].filter(t => filters[t]);
+  if (!types.length) return;
+  const type = types[Math.floor(Math.random() * types.length)];
+
+  // Spawn from edges
+  const side = Math.floor(Math.random() * 4);
+  let x, y;
+  if (side === 0) { x = Math.random() * W; y = -10; }
+  else if (side === 1) { x = W + 10; y = Math.random() * H; }
+  else if (side === 2) { x = Math.random() * W; y = H + 10; }
+  else { x = -10; y = Math.random() * H; }
+
+  signals.push(new Signal(x, y, type, true));
+}
+
+function addSignalBurst() {
+  for (let i = 0; i < 12; i++) {
+    setTimeout(spawnSignal, i * 80);
+  }
+}
+
+// ── MOUSE INTERACTION ─────────────────────────────────────────────
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = W / rect.width;
+  const scaleY = H / rect.height;
+  const mx = (e.clientX - rect.left) * scaleX;
+  const my = (e.clientY - rect.top) * scaleY;
+
+  // Click spawns signal cluster at click point
+  const types = ['mat', 'proc', 'ctx', 'mean'].filter(t => filters[t]);
+  const type = types[Math.floor(Math.random() * types.length)];
+  const dist = Math.hypot(mx - cx, my - cy);
+  const memR = Math.min(W, H) * 0.28 * (0.5 + aperture / 200);
+  const fromOutside = dist > memR;
+
+  for (let i = 0; i < 5; i++) {
+    const s = new Signal(
+      mx + (Math.random() - 0.5) * 20,
+      my + (Math.random() - 0.5) * 20,
+      type, fromOutside
+    );
+    signals.push(s);
+  }
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  mouseX = (e.clientX - rect.left) * (W / rect.width);
+  mouseY = (e.clientY - rect.top) * (H / rect.height);
+});
+
+// ── CONTROLS ─────────────────────────────────────────────────────
+document.getElementById('kindnessSlider').addEventListener('input', function() {
+  kindness = +this.value;
+  document.getElementById('kindnessVal').textContent = kindness;
+  document.getElementById('stateKindness').textContent = kindness;
+});
+document.getElementById('imaginationSlider').addEventListener('input', function() {
+  imagination = +this.value;
+  document.getElementById('imaginationVal').textContent = imagination;
+  document.getElementById('stateImagination').textContent = imagination;
+});
+document.getElementById('apertureSlider').addEventListener('input', function() {
+  aperture = +this.value;
+  document.getElementById('apertureVal').textContent = aperture;
+  document.getElementById('stateAperture').textContent = aperture;
+  initBlanketParticles();
+});
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('driftBtn').classList.toggle('active', m === 'drift');
+  document.getElementById('inquiryBtn').classList.toggle('active', m === 'inquiry');
+  document.getElementById('stateMode').textContent = m.toUpperCase();
+  if (m === 'drift') {
+    // Lower aperture, lower kindness slightly
+    document.getElementById('apertureSlider').value = 25;
+    aperture = 25;
+    document.getElementById('apertureVal').textContent = 25;
+    document.getElementById('stateAperture').textContent = 25;
+    initBlanketParticles();
+  } else {
+    document.getElementById('apertureSlider').value = 65;
+    aperture = 65;
+    document.getElementById('apertureVal').textContent = 65;
+    document.getElementById('stateAperture').textContent = 65;
+    initBlanketParticles();
+  }
+}
+
+function toggleFilter(type, el) {
+  filters[type] = !filters[type];
+  el.classList.toggle('active', filters[type]);
+}
+
+// ── LATENT STATE LABEL ────────────────────────────────────────────
+function updateLatentLabel() {
+  const active = latentOrbs.filter(o => o.life < o.maxLife).length;
+  document.getElementById('stateLatent').textContent = active > 0 ? `${active} orbs` : '—';
+}
+
+// ── MAIN LOOP ─────────────────────────────────────────────────────
+let spawnTimer = 0;
+const spawnRate = () => mode === 'drift' ? 8 : 18; // drift floods you, inquiry is selective
+
+function draw() {
+  frame++;
+  spawnTimer++;
+  if (spawnTimer >= spawnRate()) {
+    spawnTimer = 0;
+    spawnSignal();
+  }
+
+  drawBackground();
+  drawOutside();
+  drawMembrane();
+
+  // Update & draw latent orbs
+  latentOrbs = latentOrbs.filter(o => {
+    o.update(); o.draw();
+    return !( o.life >= o.maxLife );
+  });
+
+  // Update & draw signals
+  signals = signals.filter(s => {
+    s.update(); s.draw();
+    return !s.absorbed;
+  });
+
+  // Limit total signals
+  if (signals.length > 150) signals.splice(0, signals.length - 150);
+  if (latentOrbs.length > 40) latentOrbs.splice(0, latentOrbs.length - 40);
+
+  drawInner();
+  drawLabels();
+
+  if (frame % 60 === 0) updateLatentLabel();
+
+  requestAnimationFrame(draw);
+}
+
+// ── INIT ─────────────────────────────────────────────────────────
+initBlanketParticles();
+draw();
+</script>
+</body>
+</html>
