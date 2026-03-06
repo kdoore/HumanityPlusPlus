@@ -4,6 +4,7 @@
 
 > *Meaning does not arrive fully formed. It emerges through Material → Process → Context → Meaning across time.*
 
+Landing Page: https://kdoore.github.io/HumanityPlusPlus/index.html
 ---
 
 ## What This Repository Is
