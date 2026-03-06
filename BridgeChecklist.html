@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Bridge Checklist — Event Triage AI Literacy</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0a0d0f;
+    --surface: #111518;
+    --surface2: #161c20;
+    --gyro: #4ecdc4;
+    --gyro-dim: rgba(78,205,196,0.12);
+    --radar: #f7c59f;
+    --radar-dim: rgba(247,197,159,0.12);
+    --compass: #c9a8e0;
+    --compass-dim: rgba(201,168,224,0.12);
+    --text: #e8e2d9;
+    --text-dim: #8a8580;
+    --accent: #e8c47a;
+    --border: rgba(255,255,255,0.07);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Noise grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  header {
+    text-align: center;
+    padding: 64px 24px 48px;
+    position: relative;
+  }
+
+  .eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 0.2s;
+  }
+
+  h1 {
+    font-size: clamp(2.4rem, 5vw, 4rem);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 16px;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 0.4s;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .subtitle {
+    font-size: 1.1rem;
+    font-weight: 300;
+    color: var(--text-dim);
+    font-style: italic;
+    max-width: 540px;
+    margin: 0 auto;
+    line-height: 1.6;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 0.6s;
+  }
+
+  /* Spiral orbit diagram */
+  .orbit-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 48px 24px 32px;
+    opacity: 0;
+    animation: fadeUp 1s ease forwards 0.8s;
+  }
+
+  .orbit-svg {
+    width: min(480px, 90vw);
+    height: min(480px, 90vw);
+  }
+
+  /* Panel cards */
+  .panels {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    margin: 0 0 1px;
+  }
+
+  .panel {
+    background: var(--surface);
+    padding: 48px 40px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards;
+  }
+
+  .panel:nth-child(1) { animation-delay: 1.0s; }
+  .panel:nth-child(2) { animation-delay: 1.1s; }
+  .panel:nth-child(3) { animation-delay: 1.2s; }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--panel-color), transparent);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+
+  .panel:hover::before { opacity: 1; }
+
+  .panel:hover { background: var(--surface2); }
+
+  .panel-gyro { --panel-color: var(--gyro); }
+  .panel-radar { --panel-color: var(--radar); }
+  .panel-compass { --panel-color: var(--compass); }
+
+  .panel-number {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+  }
+
+  .panel-icon {
+    font-size: 2rem;
+    margin-bottom: 16px;
+  }
+
+  .panel-title {
+    font-size: 1.9rem;
+    font-weight: 300;
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
+    color: var(--panel-color);
+  }
+
+  .panel-tagline {
+    font-style: italic;
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    margin-bottom: 32px;
+    line-height: 1.5;
+  }
+
+  .card-grid {
+    display: none;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  .panel.expanded .card-grid {
+    display: grid;
+  }
+
+  .card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 4px;
+    padding: 16px;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+
+  .card:hover {
+    border-color: var(--panel-color);
+    background: var(--panel-dim-color);
+  }
+
+  .card-letter {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: var(--panel-color);
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .card-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    font-family: 'DM Mono', monospace;
+    color: var(--text);
+  }
+
+  .card-question {
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    font-style: italic;
+    line-height: 1.5;
+  }
+
+  .card-absent {
+    font-size: 0.78rem;
+    color: #ff6b6b;
+    margin-top: 8px;
+    font-family: 'DM Mono', monospace;
+    opacity: 0.7;
+  }
+
+  .expand-hint {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+    margin-top: 24px;
+    transition: color 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .expand-hint::before {
+    content: '+ expand';
+    transition: content 0.3s;
+  }
+
+  .panel.expanded .expand-hint::before {
+    content: '− collapse';
+  }
+
+  /* Spiral section */
+  .spiral-section {
+    background: var(--surface);
+    padding: 64px 40px;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 1.4s;
+  }
+
+  .spiral-title {
+    font-size: 1.4rem;
+    font-weight: 300;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    margin-bottom: 48px;
+  }
+
+  .spiral-steps {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .spiral-step {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  .step-node {
+    width: 100px;
+    text-align: center;
+  }
+
+  .step-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin: 0 auto 12px;
+    position: relative;
+  }
+
+  .step-dot::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    opacity: 0.3;
+  }
+
+  .step-label {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    font-style: italic;
+    line-height: 1.4;
+  }
+
+  .step-arrow {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    padding: 0 4px;
+    margin-bottom: 24px;
+    opacity: 0.4;
+  }
+
+  .step-1 .step-dot { background: var(--gyro); color: var(--gyro); }
+  .step-2 .step-dot { background: var(--gyro); color: var(--gyro); }
+  .step-3 .step-dot { background: var(--radar); color: var(--radar); }
+  .step-4 .step-dot { background: var(--radar); color: var(--radar); }
+  .step-5 .step-dot { background: var(--compass); color: var(--compass); }
+  .step-6 .step-dot { background: var(--compass); color: var(--compass); }
+  .step-7 .step-dot { background: var(--accent); color: var(--accent); }
+
+  /* Footer */
+  footer {
+    padding: 40px;
+    text-align: center;
+    border-top: 1px solid var(--border);
+  }
+
+  .footer-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .tagline-big {
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 300;
+    font-style: italic;
+    color: var(--accent);
+    margin: 16px 0 24px;
+    letter-spacing: -0.01em;
+  }
+
+  /* Principle bars */
+  .principle {
+    background: var(--surface2);
+    border-left: 2px solid var(--panel-color);
+    padding: 16px 20px;
+    margin-top: 28px;
+    font-style: italic;
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+    display: none;
+  }
+
+  .panel.expanded .principle { display: block; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 600px) {
+    .panel { padding: 32px 24px; }
+    .card-grid { grid-template-columns: 1fr; }
+    .spiral-steps { gap: 8px; }
+    .step-arrow { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Avalanche of Kindness · Event Triage AI Literacy</div>
+  <h1>The <em>Bridge</em> Checklist</h1>
+  <p class="subtitle">A collective ritual for navigating AI-mediated events with clarity, integrity, and care</p>
+</header>
+
+<div class="orbit-container">
+  <svg class="orbit-svg" viewBox="0 0 480 480" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Outer glow rings -->
+    <circle cx="240" cy="240" r="200" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+    <circle cx="240" cy="240" r="160" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+    <circle cx="240" cy="240" r="120" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+
+    <!-- Gyroscope arc - teal, upper left -->
+    <path d="M 240 240 m -140 0 a 140 140 0 0 1 70 -121"
+          stroke="rgba(78,205,196,0.15)" stroke-width="40" fill="none" stroke-linecap="round"/>
+    <path d="M 100 240 a 140 140 0 0 1 70 -121"
+          stroke="#4ecdc4" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+
+    <!-- Radar arc - amber, upper right -->
+    <path d="M 170 119 a 140 140 0 0 1 140 0"
+          stroke="rgba(247,197,159,0.15)" stroke-width="40" fill="none" stroke-linecap="round"/>
+    <path d="M 170 119 a 140 140 0 0 1 140 0"
+          stroke="#f7c59f" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+
+    <!-- Compass arc - lavender, lower -->
+    <path d="M 310 119 a 140 140 0 0 1 0 242"
+          stroke="rgba(201,168,224,0.15)" stroke-width="40" fill="none" stroke-linecap="round"/>
+    <path d="M 310 119 a 140 140 0 0 1 0 242"
+          stroke="#c9a8e0" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+
+    <!-- Lower return arc -->
+    <path d="M 310 361 a 140 140 0 0 1 -210 -121"
+          stroke="rgba(232,196,122,0.15)" stroke-width="40" fill="none" stroke-linecap="round"/>
+    <path d="M 310 361 a 140 140 0 0 1 -210 -121"
+          stroke="#e8c47a" stroke-width="1" stroke-dasharray="4 8" fill="none" stroke-linecap="round"/>
+
+    <!-- Center point -->
+    <circle cx="240" cy="240" r="28" fill="rgba(232,196,122,0.08)" stroke="#e8c47a" stroke-width="1"/>
+    <circle cx="240" cy="240" r="6" fill="#e8c47a"/>
+
+    <!-- Panel labels -->
+    <!-- Gyroscope -->
+    <text x="100" y="195" fill="#4ecdc4" font-family="Georgia, serif" font-size="13" font-style="italic" text-anchor="middle">Gyroscope</text>
+    <text x="100" y="212" fill="rgba(78,205,196,0.6)" font-family="monospace" font-size="9" letter-spacing="2" text-anchor="middle">STABILIZE</text>
+
+    <!-- Radar -->
+    <text x="240" y="85" fill="#f7c59f" font-family="Georgia, serif" font-size="13" font-style="italic" text-anchor="middle">Radar</text>
+    <text x="240" y="102" fill="rgba(247,197,159,0.6)" font-family="monospace" font-size="9" letter-spacing="2" text-anchor="middle">WIDEN</text>
+
+    <!-- Compass -->
+    <text x="378" y="245" fill="#c9a8e0" font-family="Georgia, serif" font-size="13" font-style="italic" text-anchor="middle">Compass</text>
+    <text x="378" y="262" fill="rgba(201,168,224,0.6)" font-family="monospace" font-size="9" letter-spacing="2" text-anchor="middle">ACT</text>
+
+    <!-- Center label -->
+    <text x="240" y="255" fill="#e8c47a" font-family="Georgia, serif" font-size="11" font-style="italic" text-anchor="middle">kind</text>
+    <text x="240" y="269" fill="#e8c47a" font-family="Georgia, serif" font-size="11" font-style="italic" text-anchor="middle">action</text>
+
+    <!-- Orbit dots -->
+    <circle cx="100" cy="240" r="5" fill="#4ecdc4"/>
+    <circle cx="170" cy="119" r="5" fill="#4ecdc4" opacity="0.6"/>
+    <circle cx="310" cy="119" r="5" fill="#f7c59f"/>
+    <circle cx="380" cy="240" r="5" fill="#c9a8e0"/>
+    <circle cx="310" cy="361" r="5" fill="#c9a8e0" opacity="0.6"/>
+    <circle cx="100" cy="240" r="5" fill="#4ecdc4"/>
+
+    <!-- Letter nodes on outer ring -->
+    <g fill="none">
+      <!-- R -->
+      <circle cx="115" cy="155" r="14" stroke="#4ecdc4" stroke-width="1" fill="rgba(78,205,196,0.08)"/>
+      <text x="115" y="160" fill="#4ecdc4" font-family="monospace" font-size="12" font-weight="500" text-anchor="middle">R</text>
+      <!-- C -->
+      <circle cx="155" cy="100" r="14" stroke="#4ecdc4" stroke-width="1" fill="rgba(78,205,196,0.08)"/>
+      <text x="155" y="105" fill="#4ecdc4" font-family="monospace" font-size="12" font-weight="500" text-anchor="middle">C</text>
+      <!-- U -->
+      <circle cx="215" cy="75" r="14" stroke="#f7c59f" stroke-width="1" fill="rgba(247,197,159,0.08)"/>
+      <text x="215" y="80" fill="#f7c59f" font-family="monospace" font-size="12" font-weight="500" text-anchor="middle">U</text>
+      <!-- S -->
+      <circle cx="270" cy="75" r="14" stroke="#f7c59f" stroke-width="1" fill="rgba(247,197,159,0.08)"/>
+      <text x="270" y="80" fill="#f7c59f" font-family="monospace" font-size="12" font-weight="500" text-anchor="middle">S</text>
+      <!-- E -->
+      <circle cx="330" cy="100" r="14" stroke="#f7c59f" stroke-width="1" fill="rgba(247,197,159,0.08)"/>
+      <text x="330" y="105" fill="#f7c59f" font-family="monospace" font-size="12" font-weight="500" text-anchor="middle">E</text>
+      <!-- P -->
+      <circle cx="375" cy="155" r="14" stroke="#c9a8e0" stroke-width="1" fill="rgba(201,168,224,0.08)"/>
+      <text x="375" y="160" fill="#c9a8e0" font-family="monospace" font-size="12" font-weight="500" text-anchor="middle">P</text>
+      <!-- V -->
+      <circle cx="390" cy="220" r="14" stroke="#c9a8e0" stroke-width="1" fill="rgba(201,168,224,0.08)"/>
+      <text x="390" y="225" fill="#c9a8e0" font-family="monospace" font-size="12" font-weight="500" text-anchor="middle">V</text>
+      <!-- K -->
+      <circle cx="370" cy="310" r="14" stroke="#c9a8e0" stroke-width="1" fill="rgba(201,168,224,0.08)"/>
+      <text x="370" y="315" fill="#c9a8e0" font-family="monospace" font-size="12" font-weight="500" text-anchor="middle">K</text>
+    </g>
+  </svg>
+</div>
+
+<!-- Panels -->
+<div class="panels">
+
+  <!-- GYROSCOPE -->
+  <div class="panel panel-gyro" onclick="togglePanel(this)">
+    <div class="panel-number">PANEL 01</div>
+    <div class="panel-icon">⊕</div>
+    <div class="panel-title">Gyroscope</div>
+    <div class="panel-tagline">Stability and co-regulation come first</div>
+
+    <div class="card-grid">
+      <div class="card" style="--panel-dim-color: var(--gyro-dim)">
+        <span class="card-letter">R</span>
+        <div class="card-name">Regulation</div>
+        <div class="card-question">"What does my body tell me before I interpret anything?"</div>
+        <div class="card-absent">absent: flooding · shutdown · shame</div>
+      </div>
+      <div class="card" style="--panel-dim-color: var(--gyro-dim)">
+        <span class="card-letter">C</span>
+        <div class="card-name">Resonant Coupling</div>
+        <div class="card-question">"Who do I trust here, and have I actually talked to them?"</div>
+        <div class="card-absent">absent: dominance loops · performative agreement</div>
+      </div>
+    </div>
+
+    <div class="principle" style="border-color: var(--gyro)">
+      The first safe pause is not for analysis. It is for stabilizing the organism and the social field.
+    </div>
+
+    <div class="expand-hint"></div>
+  </div>
+
+  <!-- RADAR -->
+  <div class="panel panel-radar" onclick="togglePanel(this)">
+    <div class="panel-number">PANEL 02</div>
+    <div class="panel-icon">◎</div>
+    <div class="panel-title">Radar</div>
+    <div class="panel-tagline">Widen sensing — hold fog — include the shadow field</div>
+
+    <div class="card-grid">
+      <div class="card" style="--panel-dim-color: var(--radar-dim)">
+        <span class="card-letter" style="color: var(--radar)">U</span>
+        <div class="card-name">Uncertainty</div>
+        <div class="card-question">"What do I genuinely not know yet?"</div>
+        <div class="card-absent">absent: forced closure · false certainty</div>
+      </div>
+      <div class="card" style="--panel-dim-color: var(--radar-dim)">
+        <span class="card-letter" style="color: var(--radar)">S</span>
+        <div class="card-name">Signal Coverage</div>
+        <div class="card-question">"Where did this come from, and who benefits from me believing it?"</div>
+        <div class="card-absent">absent: tunnel vision · narrative capture</div>
+      </div>
+      <div class="card" style="--panel-dim-color: var(--radar-dim); grid-column: 1 / -1">
+        <span class="card-letter" style="color: var(--radar)">E</span>
+        <div class="card-name">Externalities</div>
+        <div class="card-question">"Who is paying a cost that isn't visible in this picture? What is being displaced, onto whom, over what time horizon?"</div>
+        <div class="card-absent">absent: moral blindness · boundary errors</div>
+      </div>
+    </div>
+
+    <div class="principle" style="border-color: var(--radar)">
+      If you don't include the shadow field, you will mistake local optimization for wisdom.
+    </div>
+
+    <div class="expand-hint"></div>
+  </div>
+
+  <!-- COMPASS -->
+  <div class="panel panel-compass" onclick="togglePanel(this)">
+    <div class="panel-number">PANEL 03</div>
+    <div class="panel-icon">✦</div>
+    <div class="panel-title">Compass</div>
+    <div class="panel-tagline">Update models · validate in reality · choose kind action</div>
+
+    <div class="card-grid">
+      <div class="card" style="--panel-dim-color: var(--compass-dim)">
+        <span class="card-letter" style="color: var(--compass)">P</span>
+        <div class="card-name">Model Flexibility</div>
+        <div class="card-question">"What assumption am I most attached to right now?"</div>
+        <div class="card-absent">absent: identity defense · rigid certainty</div>
+      </div>
+      <div class="card" style="--panel-dim-color: var(--compass-dim)">
+        <span class="card-letter" style="color: var(--compass)">V</span>
+        <div class="card-name">Validation</div>
+        <div class="card-question">"What's the smallest action I could take to test whether I'm right?"</div>
+        <div class="card-absent">absent: compliance theater · false authority</div>
+      </div>
+      <div class="card" style="--panel-dim-color: var(--compass-dim); grid-column: 1 / -1">
+        <span class="card-letter" style="color: var(--compass)">K</span>
+        <div class="card-name">Kindness Gain</div>
+        <div class="card-question">"What would honest and kind look like here — warm truth, firm limits, and a commitment to repair?"</div>
+        <div class="card-absent">absent: cruelty · sentiment · moral cover</div>
+      </div>
+    </div>
+
+    <div class="principle" style="border-color: var(--compass)">
+      Kind action is the closing move of the learning cycle — not the starting performance.
+    </div>
+
+    <div class="expand-hint"></div>
+  </div>
+</div>
+
+<!-- The Learning Spiral -->
+<div class="spiral-section">
+  <div class="spiral-title">The Learning Spiral — from discomfort to kind agency</div>
+  <div class="spiral-steps">
+    <div class="spiral-step">
+      <div class="step-node step-1">
+        <div class="step-dot"></div>
+        <div class="step-label">Stabilize<br>& reconnect</div>
+      </div>
+    </div>
+    <div class="step-arrow">→</div>
+    <div class="spiral-step">
+      <div class="step-node step-2">
+        <div class="step-dot"></div>
+        <div class="step-label">Name the<br>event</div>
+      </div>
+    </div>
+    <div class="step-arrow">→</div>
+    <div class="spiral-step">
+      <div class="step-node step-3">
+        <div class="step-dot"></div>
+        <div class="step-label">Widen<br>sensing</div>
+      </div>
+    </div>
+    <div class="step-arrow">→</div>
+    <div class="spiral-step">
+      <div class="step-node step-4">
+        <div class="step-dot"></div>
+        <div class="step-label">Include<br>shadows</div>
+      </div>
+    </div>
+    <div class="step-arrow">→</div>
+    <div class="spiral-step">
+      <div class="step-node step-5">
+        <div class="step-dot"></div>
+        <div class="step-label">Revise &<br>validate</div>
+      </div>
+    </div>
+    <div class="step-arrow">→</div>
+    <div class="spiral-step">
+      <div class="step-node step-6">
+        <div class="step-dot"></div>
+        <div class="step-label">Choose kind<br>action</div>
+      </div>
+    </div>
+    <div class="step-arrow">→</div>
+    <div class="spiral-step">
+      <div class="step-node step-7">
+        <div class="step-dot"></div>
+        <div class="step-label">Learn &<br>update</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-text">Avalanche of Kindness · Event Triage AI Literacy Framework</div>
+  <div class="tagline-big">Not control. Not panic. Not compliance.<br>Stewardship.</div>
+  <div class="footer-text">stabilize → widen → act with integrity</div>
+</footer>
+
+<script>
+  function togglePanel(el) {
+    el.classList.toggle('expanded');
+  }
+</script>
+</body>
+</html>
