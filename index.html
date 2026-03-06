@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Humanity++ — MPCM Framework & Bridging Spiral</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&family=Share+Tech+Mono&display=swap');
+
+:root {
+  --void:      #07090f;
+  --deep:      #0d1220;
+  --panel:     #111827;
+  --surface:   #161e2e;
+  --rim:       #1e2d45;
+  --spades:    #6ab4d4;
+  --diamonds:  #d4a84a;
+  --hearts:    #d46878;
+  --clubs:     #6dc498;
+  --kindness:  #c8b898;
+  --imagine:   #fffbe8;
+  --txt:       #ddd8cc;
+  --txt-mid:   #8a8070;
+  --txt-dim:   #4a4540;
+  --border:    #1e2d45;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--void);
+  color: var(--txt);
+  font-family: 'Crimson Pro', serif;
+  min-height: 100vh;
+}
+
+/* Subtle grain */
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 100;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  opacity: 0.4;
+}
+
+.page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 56px 28px 80px;
+  position: relative; z-index: 1;
+}
+
+/* ── HEADER ── */
+.site-header {
+  text-align: center;
+  margin-bottom: 56px;
+  padding-bottom: 36px;
+  border-bottom: 1px solid var(--rim);
+  position: relative;
+}
+
+.site-header .eyebrow {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.58rem; letter-spacing: 0.35em;
+  color: var(--txt-dim); margin-bottom: 16px;
+  text-transform: uppercase;
+}
+
+.site-header h1 {
+  font-family: 'Cinzel', serif;
+  font-weight: 400;
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  letter-spacing: 0.15em;
+  color: var(--txt);
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+
+.site-header h1 span {
+  color: var(--kindness);
+}
+
+.site-header .tagline {
+  font-size: 1.1rem;
+  font-style: italic;
+  color: var(--txt-mid);
+  margin-top: 14px;
+  line-height: 1.6;
+  max-width: 560px;
+  margin-left: auto; margin-right: auto;
+}
+
+.mpcm-strip {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.mpcm-node {
+  font-family: 'Cinzel', serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border: 1px solid;
+  letter-spacing: 0.1em;
+}
+.mpcm-node.m1 { color: var(--spades);   border-color: rgba(106,180,212,0.3); }
+.mpcm-node.p  { color: var(--diamonds); border-color: rgba(212,168,74,0.3);  }
+.mpcm-node.c  { color: var(--hearts);   border-color: rgba(212,104,120,0.3); }
+.mpcm-node.m2 { color: var(--kindness); border-color: rgba(200,184,152,0.3); font-style: italic; }
+.mpcm-arrow {
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--txt-dim); font-size: 0.8rem;
+}
+
+/* ── SECTION LABEL ── */
+.section-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.58rem; letter-spacing: 0.3em;
+  color: var(--txt-dim); text-transform: uppercase;
+  margin-bottom: 20px;
+  display: flex; align-items: center; gap: 14px;
+}
+.section-label::after {
+  content: '';
+  flex: 1; height: 1px;
+  background: var(--rim);
+}
+
+/* ── CARDS GRID ── */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 56px;
+}
+
+.card {
+  display: block;
+  text-decoration: none;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-top-width: 2px;
+  padding: 22px 22px 18px;
+  transition: border-color 0.25s, background 0.25s, transform 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute; inset: 0;
+  opacity: 0; transition: opacity 0.25s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+.card:hover::before { opacity: 1; }
+
+/* Per-card accent colours */
+.card.spades   { border-top-color: var(--spades);   }
+.card.diamonds { border-top-color: var(--diamonds); }
+.card.hearts   { border-top-color: var(--hearts);   }
+.card.clubs    { border-top-color: var(--clubs);    }
+.card.kindness-card { border-top-color: var(--kindness); }
+
+.card.spades::before   { background: rgba(106,180,212,0.04); }
+.card.diamonds::before { background: rgba(212,168,74,0.04);  }
+.card.hearts::before   { background: rgba(212,104,120,0.04); }
+.card.clubs::before    { background: rgba(109,196,152,0.04); }
+.card.kindness-card::before { background: rgba(200,184,152,0.04); }
+
+.card:hover.spades   { border-color: var(--spades);   }
+.card:hover.diamonds { border-color: var(--diamonds); }
+.card:hover.hearts   { border-color: var(--hearts);   }
+.card:hover.clubs    { border-color: var(--clubs);    }
+.card:hover.kindness-card { border-color: var(--kindness); }
+
+.card-header {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  position: relative; z-index: 1;
+}
+
+.card-suit {
+  font-size: 1.8rem; line-height: 1;
+}
+.card.spades   .card-suit { color: var(--spades);   filter: drop-shadow(0 0 6px rgba(106,180,212,0.4)); }
+.card.diamonds .card-suit { color: var(--diamonds); filter: drop-shadow(0 0 6px rgba(212,168,74,0.4));  }
+.card.hearts   .card-suit { color: var(--hearts);   filter: drop-shadow(0 0 6px rgba(212,104,120,0.4)); }
+.card.clubs    .card-suit { color: var(--clubs);    filter: drop-shadow(0 0 6px rgba(109,196,152,0.4)); }
+.card.kindness-card .card-suit { color: var(--kindness); filter: drop-shadow(0 0 6px rgba(200,184,152,0.4)); }
+
+.card-tag {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.5rem; letter-spacing: 0.2em;
+  color: var(--txt-dim); text-transform: uppercase;
+  text-align: right; line-height: 1.6;
+}
+
+.card-title {
+  font-family: 'Cinzel', serif;
+  font-size: 0.95rem; letter-spacing: 0.1em;
+  line-height: 1.3; margin-bottom: 8px;
+  position: relative; z-index: 1;
+}
+.card.spades   .card-title { color: var(--spades);   }
+.card.diamonds .card-title { color: var(--diamonds); }
+.card.hearts   .card-title { color: var(--hearts);   }
+.card.clubs    .card-title { color: var(--clubs);    }
+.card.kindness-card .card-title { color: var(--kindness); }
+
+.card-desc {
+  font-size: 0.88rem;
+  font-style: italic;
+  color: var(--txt-mid);
+  line-height: 1.65;
+  position: relative; z-index: 1;
+}
+
+.card-footer {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rim);
+  display: flex; align-items: center;
+  justify-content: space-between;
+  position: relative; z-index: 1;
+}
+
+.card-filename {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.52rem; color: var(--txt-dim);
+  letter-spacing: 0.1em;
+}
+
+.card-arrow {
+  font-size: 0.8rem; color: var(--txt-dim);
+  transition: transform 0.2s, color 0.2s;
+}
+.card:hover .card-arrow { transform: translateX(4px); color: var(--txt); }
+
+/* ── ABOUT SECTION ── */
+.about {
+  background: var(--deep);
+  border: 1px solid var(--rim);
+  padding: 28px 32px;
+  margin-bottom: 40px;
+}
+
+.about h2 {
+  font-family: 'Cinzel', serif;
+  font-size: 0.9rem; letter-spacing: 0.2em;
+  color: var(--kindness); margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rim);
+}
+
+.about p {
+  font-size: 0.92rem;
+  line-height: 1.75;
+  color: var(--txt-mid);
+  font-style: italic;
+}
+
+.about p + p { margin-top: 10px; }
+
+.about .note {
+  margin-top: 16px;
+  padding: 10px 14px;
+  border-left: 2px solid rgba(200,184,152,0.3);
+  font-size: 0.82rem;
+  color: var(--txt-dim);
+  font-style: normal;
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.06em;
+  line-height: 1.7;
+}
+
+/* ── INSTRUMENTS ROW ── */
+.instruments-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 40px;
+}
+
+.inst-mini {
+  padding: 12px 14px;
+  border: 1px solid var(--rim);
+  border-top-width: 2px;
+  background: var(--panel);
+  text-align: center;
+}
+.inst-mini.sp { border-top-color: var(--spades);   }
+.inst-mini.di { border-top-color: var(--diamonds); }
+.inst-mini.he { border-top-color: var(--hearts);   }
+.inst-mini.cl { border-top-color: var(--clubs);    }
+
+.inst-mini .suit {
+  font-size: 1.4rem; display: block; margin-bottom: 4px;
+}
+.inst-mini.sp .suit { color: var(--spades);   }
+.inst-mini.di .suit { color: var(--diamonds); }
+.inst-mini.he .suit { color: var(--hearts);   }
+.inst-mini.cl .suit { color: var(--clubs);    }
+
+.inst-mini .inst-name {
+  font-family: 'Cinzel', serif;
+  font-size: 0.62rem; letter-spacing: 0.12em;
+  color: var(--txt-mid); display: block;
+  margin-bottom: 2px;
+}
+.inst-mini .inst-alch {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.5rem; color: var(--txt-dim);
+  letter-spacing: 0.1em;
+}
+
+/* ── FOOTER ── */
+.site-footer {
+  text-align: center;
+  padding-top: 32px;
+  border-top: 1px solid var(--rim);
+}
+
+.site-footer .quote {
+  font-style: italic;
+  color: var(--txt-dim);
+  font-size: 0.92rem;
+  line-height: 1.7;
+  max-width: 520px;
+  margin: 0 auto 20px;
+}
+
+.site-footer .links {
+  display: flex; gap: 20px;
+  justify-content: center; flex-wrap: wrap;
+}
+
+.site-footer a {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.58rem; letter-spacing: 0.2em;
+  color: var(--txt-dim); text-decoration: none;
+  border-bottom: 1px solid var(--rim);
+  padding-bottom: 2px;
+  transition: color 0.2s, border-color 0.2s;
+}
+.site-footer a:hover { color: var(--kindness); border-color: var(--kindness); }
+
+.license-badge {
+  margin-top: 20px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.52rem; color: var(--txt-dim);
+  letter-spacing: 0.15em;
+}
+.license-badge a { font-size: 0.52rem; }
+
+/* Animations */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.site-header  { animation: fadeUp 0.6s ease both 0.05s; }
+.section-label { animation: fadeUp 0.5s ease both 0.2s; }
+.cards        { animation: fadeUp 0.5s ease both 0.3s; }
+.about        { animation: fadeUp 0.5s ease both 0.4s; }
+.instruments-row { animation: fadeUp 0.5s ease both 0.5s; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="eyebrow">Open Source Process Documentation · Bridging Spiral SR2</div>
+    <h1>Humanity<span>++</span></h1>
+    <p class="tagline">MPCM Framework &amp; Bridging Spiral — interactive explorations of human meaning-making in AI-augmented information ecosystems</p>
+    <div class="mpcm-strip">
+      <span class="mpcm-node m1">M</span>
+      <span class="mpcm-arrow">→</span>
+      <span class="mpcm-node p">P</span>
+      <span class="mpcm-arrow">→</span>
+      <span class="mpcm-node c">C</span>
+      <span class="mpcm-arrow">⇢</span>
+      <span class="mpcm-node m2">M</span>
+    </div>
+  </header>
+
+  <!-- INTERACTIVE EXPLORATIONS -->
+  <div class="section-label">Interactive Explorations</div>
+
+  <div class="cards">
+
+    <a href="markovBlanket.html" class="card spades">
+      <div class="card-header">
+        <span class="card-suit">◎</span>
+        <span class="card-tag">SIMULATION · v1<br>MARKOV BLANKET</span>
+      </div>
+      <div class="card-title">Markov Blanket — Self &amp; World</div>
+      <div class="card-desc">Interactive simulation of the permeable membrane between self and information ecosystem. Adjust kindness, aperture, and imagination as live parameters. Watch how signals cross — or don't.</div>
+      <div class="card-footer">
+        <span class="card-filename">markovBlanket.html</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="markovBlanket_v2.html" class="card diamonds">
+      <div class="card-header">
+        <span class="card-suit">◈</span>
+        <span class="card-tag">SIMULATION · v2<br>MARKOV BLANKET</span>
+      </div>
+      <div class="card-title">Markov Blanket — Version 2</div>
+      <div class="card-desc">Iterated version of the Markov blanket simulation. Process documentation of what changed between versions — refinements to the membrane model and signal dynamics.</div>
+      <div class="card-footer">
+        <span class="card-filename">markovBlanket_v2.html</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="BridgeChecklist.html" class="card hearts">
+      <div class="card-header">
+        <span class="card-suit">♥</span>
+        <span class="card-tag">TOOL · SR2<br>DASHBOARD DIALS</span>
+      </div>
+      <div class="card-title">Bridge Checklist — Dashboard Dials</div>
+      <div class="card-desc">Interactive reference for the Bridging Spiral dashboard. Four instruments — somatic gyroscope, cognitive radar, relational compass, dimensional integration — as a navigational checklist.</div>
+      <div class="card-footer">
+        <span class="card-filename">BridgeChecklist.html</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="emotion_affect_arousal.html" class="card clubs">
+      <div class="card-header">
+        <span class="card-suit">✦</span>
+        <span class="card-tag">MODEL · SOMATIC<br>APERTURE</span>
+      </div>
+      <div class="card-title">Emotion, Affect &amp; Arousal</div>
+      <div class="card-desc">Interactive model of the somatic layer — emotion, affect, and arousal as the nonlinearity in human cognitive architecture. The activation function that makes depth possible.</div>
+      <div class="card-footer">
+        <span class="card-filename">emotion_affect_arousal.html</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+  </div>
+
+  <!-- ABOUT -->
+  <div class="about">
+    <h2>ABOUT THIS REPOSITORY</h2>
+    <p>This is a living documentation of process — an open-source record of one educator-artist-researcher's exploration of AI-assisted interactive code generation as a medium for expressing ideas about human learning, meaning-making, and information literacy.</p>
+    <p>These interactive models were generated collaboratively with Claude (Anthropic) and ChatGPT (OpenAI), iterated, and reflected upon as part of an ongoing inquiry into what AI-assisted code generation can and cannot teach. The conceptual framework, prompting, curation, and process reflection are the work of the human author.</p>
+    <p>The central argument: engineers build M (material) and operate P (process). Power over Process is not the same as power over Meaning. Meaning is the domain of living minds — arts education, contemplative practice, and the cultivation of imagination.</p>
+    <div class="note">
+      PROCESS NOTE — These explorations are documented openly so others can examine not just the outputs but the process that produced them. A learner encountering these tools without prior experience of coding, drawing, and making will have a different — and likely shallower — encounter than one who brings those subconscious models. That gap is itself a demonstration of the framework.
+    </div>
+  </div>
+
+  <!-- FOUR INSTRUMENTS -->
+  <div class="section-label">The Four Instruments</div>
+  <div class="instruments-row">
+    <div class="inst-mini sp">
+      <span class="suit">♠</span>
+      <span class="inst-name">Somatic Gyroscope</span>
+      <span class="inst-alch">🜃 Earth · Activation</span>
+    </div>
+    <div class="inst-mini di">
+      <span class="suit">♦</span>
+      <span class="inst-name">Cognitive Radar</span>
+      <span class="inst-alch">🜁 Air · Linear Layer</span>
+    </div>
+    <div class="inst-mini he">
+      <span class="suit">♥</span>
+      <span class="inst-name">Relational Compass</span>
+      <span class="inst-alch">🜄 Water · Loss Function</span>
+    </div>
+    <div class="inst-mini cl">
+      <span class="suit">♣</span>
+      <span class="inst-name">Dimensional Integration</span>
+      <span class="inst-alch">🜂 Fire · Backpropagation</span>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <p class="quote">The most critical concept is imagination — and imagination feels safe only where kindness is the field condition.</p>
+    <div class="links">
+      <a href="https://github.com/kdoore/HumanityPlusPlus" target="_blank">GITHUB REPOSITORY</a>
+      <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank">CC BY-SA 4.0</a>
+    </div>
+    <div class="license-badge">
+      Creative Commons Attribution-ShareAlike 4.0 International ·
+      <a href="https://github.com/kdoore/HumanityPlusPlus" target="_blank">kdoore / HumanityPlusPlus</a>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
