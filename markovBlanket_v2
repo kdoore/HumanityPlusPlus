@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Markov Blanket Simulator — MPCM + Bridging Spiral</title>
+  <style>
+    :root{
+      --fg:#111;
+      --bg:#fafafa;
+      --muted:#666;
+      --panel:#ffffff;
+      --line:#111;
+    }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--fg);
+      background:var(--bg);
+    }
+    header{
+      padding:18px 22px;
+      border-bottom:1px solid #e6e6e6;
+      background:#fff;
+    }
+    header h1{ margin:0 0 4px 0; font-size:18px; font-weight:700;}
+    header p{ margin:0; color:var(--muted); font-size:13px; line-height:1.35;}
+    .wrap{
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap:14px;
+      padding:14px;
+      align-items:start;
+    }
+    .panel{
+      background:var(--panel);
+      border:1px solid #e6e6e6;
+      border-radius:12px;
+      padding:14px;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+    }
+    .panel h2{
+      margin:0 0 10px 0;
+      font-size:14px;
+    }
+    .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin:10px 0;
+    }
+    label{ font-size:12px; color:var(--fg); }
+    .hint{ font-size:12px; color:var(--muted); line-height:1.35; margin-top:6px;}
+    input[type="range"]{ width: 190px; }
+    .pillbar{ display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 6px; }
+    button{
+      border:1px solid #d9d9d9;
+      background:#fff;
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:12px;
+      cursor:pointer;
+    }
+    button.active{ border-color:#111; }
+    .legend{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;}
+    .mini{ font-size:12px; color:var(--muted); line-height:1.35;}
+    .kpi{
+      font-size:12px;
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap:10px;
+      margin:10px 0 0;
+      padding-top:10px;
+      border-top:1px dashed #e6e6e6;
+    }
+    .kpi strong{ font-weight:700; }
+    .kpi .val{ font-variant-numeric: tabular-nums; }
+    .callouts{
+      margin-top:10px;
+      padding-top:10px;
+      border-top:1px dashed #e6e6e6;
+    }
+    .callouts h3{ margin:0 0 6px 0; font-size:12px; }
+    .callouts ul{ margin:0; padding-left:18px; color:var(--muted); font-size:12px; line-height:1.35;}
+    /* Canvas area */
+    .stage{
+      background:#fff;
+      border:1px solid #e6e6e6;
+      border-radius:12px;
+      padding:10px;
+      overflow:hidden;
+    }
+    svg{ width:100%; height:640px; display:block; }
+    .txt{ font-size:12px; fill:#111; }
+    .muted{ fill:#666; font-size:11px; }
+    .badge{ font-size:12px; font-weight:700; }
+    .ghost{ opacity:0.12; }
+    .hidden{ display:none; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Markov Blanket Simulator</h1>
+  <p>MPCM + Bridging Spiral: make boundary/permeability teachable. Use sliders to tune Aperture faces and watch how sensing, meaning, and action risks shift.</p>
+</header>
+
+<div class="wrap">
+  <div class="panel">
+    <h2>Mode</h2>
+    <div class="pillbar" id="modeBar">
+      <button data-mode="drift" class="active">Mode 0 — Drift</button>
+      <button data-mode="inquiry">Mode 1 — Inquiry</button>
+    </div>
+    <div class="hint" id="modeHint">
+      Drift favors stimulation and frame-capture. The goal is tiny interventions so drift doesn’t become harm.
+    </div>
+
+    <h2 style="margin-top:14px;">A — Aperture (3 faces)</h2>
+
+    <div class="row">
+      <label>Aₛ Somatic (♠): sense & settle</label>
+      <input id="as" type="range" min="0" max="10" value="6"/>
+      <span class="val" id="asVal">6</span>
+    </div>
+    <div class="row">
+      <label>A꜀ Cognitive (♦): hold multiple models</label>
+      <input id="ac" type="range" min="0" max="10" value="6"/>
+      <span class="val" id="acVal">6</span>
+    </div>
+    <div class="row">
+      <label>Aᵣ Relational (♥): include other minds</label>
+      <input id="ar" type="range" min="0" max="10" value="6"/>
+      <span class="val" id="arVal">6</span>
+    </div>
+
+    <div class="kpi">
+      <div><strong>Permeability</strong> (blanket thickness)</div>
+      <div class="val" id="permVal">—</div>
+      <div><strong>Capture Risk</strong> (frame-lock + compulsion)</div>
+      <div class="val" id="riskVal">—</div>
+      <div><strong>Meaning Pooling</strong> (MPCM conditions)</div>
+      <div class="val" id="poolVal">—</div>
+    </div>
+
+    <div class="callouts">
+      <h3>Dose ladder (widen A)</h3>
+      <ul>
+        <li><strong>Micro (60–120s):</strong> orient + breathe + stand + change posture/light</li>
+        <li><strong>Meso (10–20m):</strong> walk outside / analog mark-making / slow movement</li>
+        <li><strong>Macro (sleep):</strong> consolidation; deferred understanding is not lost</li>
+      </ul>
+    </div>
+
+    <h2 style="margin-top:14px;">MPCM visibility</h2>
+    <div class="pillbar" id="mpcmBar">
+      <button data-layer="M" class="active">M Material</button>
+      <button data-layer="P" class="active">P Process</button>
+      <button data-layer="C" class="active">C Context</button>
+      <button data-layer="MEAN" class="active">M Meaning</button>
+    </div>
+    <div class="hint">Toggle layers to reveal what drift hides: material/process/context constraints.</div>
+
+    <h2 style="margin-top:14px;">Quick interventions</h2>
+    <div class="pillbar" id="acts">
+      <button data-act="pause">♠ Pause & Intention</button>
+      <button data-act="verify">♥ Verification Scale</button>
+      <button data-act="exit">♥ Consent Boundary</button>
+      <button data-act="recal">♣ Recalibration Loop</button>
+      <button data-act="analog">♣ Analog Practice</button>
+      <button data-act="kind">❄ Kindness Move</button>
+    </div>
+    <div class="hint" id="actHint">Click an intervention to see suggested next-step text (right).</div>
+  </div>
+
+  <div class="stage panel">
+    <svg viewBox="0 0 980 640" aria-label="Markov blanket diagram">
+      <!-- labels -->
+      <text x="22" y="30" class="badge">Inside (agent / self)</text>
+      <text x="740" y="30" class="badge">Outside (world / others)</text>
+
+      <!-- inside/outside shading -->
+      <rect x="20" y="50" width="470" height="560" fill="#111" opacity="0.03" rx="14"/>
+      <rect x="490" y="50" width="470" height="560" fill="#111" opacity="0.02" rx="14"/>
+
+      <!-- markov blanket (boundary) -->
+      <path id="blanket" d="M490,70 C450,120 450,520 490,570"
+            fill="none" stroke="#111" stroke-width="10" stroke-linecap="round"/>
+
+      <!-- sensory arrows (world -> blanket -> inside) -->
+      <g id="sensory">
+        <path d="M740,170 C650,170 610,170 510,170" fill="none" stroke="#111" stroke-width="2"/>
+        <polygon points="510,170 522,164 522,176" fill="#111"/>
+        <text x="720" y="156" class="muted">sensory stream</text>
+      </g>
+
+      <!-- action arrows (inside -> blanket -> world) -->
+      <g id="active">
+        <path d="M240,470 C340,470 380,470 470,470" fill="none" stroke="#111" stroke-width="2"/>
+        <polygon points="470,470 458,464 458,476" fill="#111"/>
+        <text x="240" y="456" class="muted">active outputs</text>
+      </g>
+
+      <!-- internal state nodes -->
+      <g id="nodes">
+        <circle cx="260" cy="170" r="26" fill="#fff" stroke="#111" stroke-width="2"/>
+        <text x="260" y="175" text-anchor="middle" class="txt">♠</text>
+        <text x="260" y="210" text-anchor="middle" class="muted">Somatic</text>
+
+        <circle cx="260" cy="290" r="26" fill="#fff" stroke="#111" stroke-width="2"/>
+        <text x="260" y="295" text-anchor="middle" class="txt">♦</text>
+        <text x="260" y="330" text-anchor="middle" class="muted">Cognitive</text>
+
+        <circle cx="260" cy="410" r="26" fill="#fff" stroke="#111" stroke-width="2"/>
+        <text x="260" y="415" text-anchor="middle" class="txt">♥</text>
+        <text x="260" y="450" text-anchor="middle" class="muted">Relational</text>
+
+        <circle cx="260" cy="530" r="26" fill="#fff" stroke="#111" stroke-width="2"/>
+        <text x="260" y="535" text-anchor="middle" class="txt">♣</text>
+        <text x="260" y="570" text-anchor="middle" class="muted">Integration</text>
+      </g>
+
+      <!-- MPCM layer labels (toggleable) -->
+      <g id="layerM">
+        <text x="70" y="90" class="badge">M — Material</text>
+        <text x="70" y="110" class="muted">tokens · pixels · signals</text>
+      </g>
+      <g id="layerP">
+        <text x="540" y="90" class="badge">P — Process</text>
+        <text x="540" y="110" class="muted">ranking · routing · loops</text>
+      </g>
+      <g id="layerC">
+        <text x="540" y="260" class="badge">C — Context</text>
+        <text x="540" y="280" class="muted">incentives · relation · state</text>
+      </g>
+      <g id="layerMEAN">
+        <text x="70" y="610" class="badge">M — Meaning</text>
+        <text x="70" y="630" class="muted">pools when conditions allow</text>
+      </g>
+
+      <!-- noise dots in sensory stream -->
+      <g id="noise"></g>
+
+      <!-- meaning pool meter -->
+      <rect x="70" y="560" width="240" height="16" fill="#fff" stroke="#111" stroke-width="1"/>
+      <rect id="pool" x="70" y="560" width="0" height="16" fill="#111" opacity="0.18"/>
+      <text x="320" y="573" class="muted">meaning pool</text>
+
+      <!-- right-side info box -->
+      <rect x="540" y="360" width="390" height="230" rx="14" fill="#fff" stroke="#111" stroke-width="1"/>
+      <text x="560" y="388" class="badge">Intervention suggestion</text>
+      <text id="suggest" x="560" y="414" class="txt">Choose an intervention (left) to see a next-step script.</text>
+
+      <text x="560" y="520" class="muted">Tip: if Aperture is low, don’t force convergence.</text>
+    </svg>
+  </div>
+</div>
+
+<script>
+  const els = {
+    as: document.getElementById('as'),
+    ac: document.getElementById('ac'),
+    ar: document.getElementById('ar'),
+    asVal: document.getElementById('asVal'),
+    acVal: document.getElementById('acVal'),
+    arVal: document.getElementById('arVal'),
+    blanket: document.getElementById('blanket'),
+    noise: document.getElementById('noise'),
+    pool: document.getElementById('pool'),
+    permVal: document.getElementById('permVal'),
+    riskVal: document.getElementById('riskVal'),
+    poolVal: document.getElementById('poolVal'),
+    modeHint: document.getElementById('modeHint'),
+    suggest: document.getElementById('suggest'),
+    mpcmButtons: [...document.querySelectorAll('#mpcmBar button')],
+    modeButtons: [...document.querySelectorAll('#modeBar button')],
+    actButtons: [...document.querySelectorAll('#acts button')]
+  };
+
+  const layerIds = {M:'layerM', P:'layerP', C:'layerC', MEAN:'layerMEAN'};
+  const state = {mode:'drift', show:{M:true,P:true,C:true,MEAN:true}};
+
+  function clamp(x, a, b){ return Math.max(a, Math.min(b, x)); }
+
+  function compute(){
+    const As = +els.as.value, Ac = +els.ac.value, Ar = +els.ar.value;
+    // permeability: thicker line when As is lower (boundary jittery/rigid); thinner when well-regulated
+    const perm = clamp(12 - As*0.7 + (state.mode==='drift'?1.2:0), 3, 14);
+    // capture risk: high when As low + Ac low + mode drift, reduced by relational capacity
+    const risk = clamp((10-As)*0.45 + (10-Ac)*0.35 + (state.mode==='drift'?1.4:0) - Ar*0.15, 0, 10);
+    // meaning pooling: needs enough As and Ac, and a bit of Ar; drift penalizes
+    const pool = clamp((As*0.38 + Ac*0.42 + Ar*0.20) - (state.mode==='drift'?1.2:0), 0, 10);
+    return {As,Ac,Ar,perm,risk,pool};
+  }
+
+  function drawNoise(risk){
+    els.noise.innerHTML = '';
+    const n = Math.round(10 + risk*7);  // more risk = more noise
+    for(let i=0;i<n;i++){
+      const x = 520 + Math.random()*190;
+      const y = 140 + Math.random()*90;
+      const r = 1 + Math.random()*2.2;
+      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('cx', x);
+      c.setAttribute('cy', y);
+      c.setAttribute('r', r);
+      c.setAttribute('fill', '#111');
+      c.setAttribute('opacity', 0.08 + Math.random()*0.18);
+      els.noise.appendChild(c);
+    }
+  }
+
+  function apply(){
+    const {As,Ac,Ar,perm,risk,pool} = compute();
+    els.asVal.textContent = As;
+    els.acVal.textContent = Ac;
+    els.arVal.textContent = Ar;
+
+    els.blanket.setAttribute('stroke-width', perm.toFixed(1));
+    drawNoise(risk);
+
+    // pool meter width 0..240
+    const w = (pool/10)*240;
+    els.pool.setAttribute('width', w.toFixed(0));
+
+    els.permVal.textContent = perm.toFixed(1);
+    els.riskVal.textContent = risk.toFixed(1) + " / 10";
+    els.poolVal.textContent = pool.toFixed(1) + " / 10";
+
+    // soft guidance script in box
+    let guidance = [];
+    if(state.mode==='drift'){
+      guidance.push("Mode: Drift. Install a tiny boundary if you feel pulled.");
+    } else {
+      guidance.push("Mode: Inquiry. Use time boundaries and verify to match stakes.");
+    }
+    if(As<=3) guidance.push("Somatic aperture is low: choose Micro or Meso dose before interpreting.");
+    if(Ac<=3) guidance.push("Cognitive aperture is low: avoid single-story lock-in; write one alternative model.");
+    if(Ar<=3) guidance.push("Relational aperture is low: add a reality-check with a trusted human before escalating.");
+    if(risk>=7) guidance.push("Capture risk is high: step away, switch modality, or end session.");
+    if(pool>=7) guidance.push("Meaning pooling is strong: this is a good moment for reflection and a model update.");
+    if(guidance.length===0) guidance.push("You’re in a workable window. Choose one intentional next step.");
+
+    // render multi-line as tspans
+    els.suggest.innerHTML = '';
+    const baseX=560, baseY=414;
+    guidance.slice(0,6).forEach((line, idx)=>{
+      const t = document.createElementNS('http://www.w3.org/2000/svg','tspan');
+      t.setAttribute('x', baseX);
+      t.setAttribute('dy', idx===0?0:18);
+      t.textContent = "• " + line;
+      els.suggest.appendChild(t);
+    });
+  }
+
+  // MPCM toggles
+  els.mpcmButtons.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const k = btn.getAttribute('data-layer');
+      state.show[k] = !state.show[k];
+      btn.classList.toggle('active', state.show[k]);
+      document.getElementById(layerIds[k]).classList.toggle('hidden', !state.show[k]);
+    });
+  });
+
+  // Mode toggles
+  els.modeButtons.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      els.modeButtons.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      state.mode = btn.getAttribute('data-mode');
+      // presets
+      if(state.mode==='drift'){
+        els.as.value = 5; els.ac.value = 5; els.ar.value = 5;
+        els.modeHint.textContent = "Drift favors stimulation and frame-capture. The goal is tiny interventions so drift doesn’t become harm.";
+      }else{
+        els.as.value = 6; els.ac.value = 7; els.ar.value = 6;
+        els.modeHint.textContent = "Inquiry favors intention, verification scaling, and model-updating across time.";
+      }
+      apply();
+    });
+  });
+
+  // Intervention suggestion scripts
+  const scripts = {
+    pause: "♠ Pause & Intention: ‘What am I here to do (one sentence)? How long (timer)? What’s my exit if this escalates?’",
+    verify:"♥ Verification Scale: ‘What are the stakes? Low: note uncertainty. Medium: check one independent source. High: consult a trusted human/institution.’",
+    exit:  "♥ Consent Boundary: ‘I’m done for now.’ ‘I’ll revisit tomorrow.’ ‘I won’t engage this thread.’ (Protect autonomy + attention.)",
+    recal:  "♣ Recalibration Loop: ‘Why do I feel sure? What variable is missing? What would change my mind?’ Mark one key point as I (indeterminate).",
+    analog: "♣ Analog Practice: ‘Make a 2–5 minute mark (or longer): line, color field, collage. Let the body discharge; return with wider aperture.’",
+    kind:  "❄ Kindness Move: ‘Warm truth + firm limit + repair intent.’ Choose the smallest move that reduces harm and preserves learning capacity."
+  };
+
+  els.actButtons.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      els.actButtons.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const k = btn.getAttribute('data-act');
+      // render in svg suggest box as tspans
+      els.suggest.innerHTML = '';
+      const lines = scripts[k].split(/(?<=\.)\s+/);
+      const baseX=560, baseY=414;
+      lines.forEach((line, idx)=>{
+        const t = document.createElementNS('http://www.w3.org/2000/svg','tspan');
+        t.setAttribute('x', baseX);
+        t.setAttribute('dy', idx===0?0:18);
+        t.textContent = line.trim();
+        els.suggest.appendChild(t);
+      });
+    });
+  });
+
+  ['input','change'].forEach(evt=>{
+    els.as.addEventListener(evt, apply);
+    els.ac.addEventListener(evt, apply);
+    els.ar.addEventListener(evt, apply);
+  });
+
+  apply();
+</script>
+</body>
+</html>
