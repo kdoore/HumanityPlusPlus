@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Emotion Field — Affect × Arousal (p5.js)</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
+  <style>
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#0b0b0c;color:#e9e9ee;}
+    header{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.08);background:rgba(0,0,0,0.35);backdrop-filter: blur(6px);}
+    header h1{margin:0 0 6px 0;font-size:16px;font-weight:700;letter-spacing:0.2px;}
+    header p{margin:0;color:rgba(233,233,238,0.75);font-size:12px;line-height:1.35;max-width:980px;}
+    .wrap{display:grid;grid-template-columns:340px 1fr;gap:14px;padding:14px;align-items:start;}
+    .panel{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:12px;}
+    .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0;}
+    label{font-size:12px;color:rgba(233,233,238,0.9);}
+    input[type="range"]{width:180px;}
+    .val{font-variant-numeric:tabular-nums;font-size:12px;color:rgba(233,233,238,0.75);}
+    .hint{font-size:12px;color:rgba(233,233,238,0.68);line-height:1.35;margin-top:8px;}
+    .pillbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+    button{border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);color:#e9e9ee;border-radius:999px;padding:6px 10px;font-size:12px;cursor:pointer;}
+    button.active{border-color:rgba(255,255,255,0.55);}
+    .stage{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:8px;overflow:hidden;}
+    canvas{display:block;border-radius:10px;}
+    .kpis{margin-top:10px;border-top:1px dashed rgba(255,255,255,0.12);padding-top:10px;font-size:12px;display:grid;grid-template-columns:1fr auto;gap:8px;}
+    a{color:#cfe1ff}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Emotion Field — Affect × Arousal</h1>
+  <p>
+    A minimal interactive model for SR2: affect (valence) and arousal tune an organic “field” (flow + particles).
+    Use it as a sketchpad for mapping emotional state to attention quality and meaning conditions.
+  </p>
+</header>
+
+<div class="wrap">
+  <div class="panel">
+    <div class="row">
+      <label>Affect (valence)</label>
+      <input id="affect" type="range" min="-100" max="100" value="0">
+      <span class="val" id="affectVal">0.00</span>
+    </div>
+
+    <div class="row">
+      <label>Arousal</label>
+      <input id="arousal" type="range" min="0" max="100" value="40">
+      <span class="val" id="arousalVal">0.40</span>
+    </div>
+
+    <div class="row">
+      <label>Sensory load</label>
+      <input id="sensory" type="range" min="0" max="100" value="45">
+      <span class="val" id="sensoryVal">0.45</span>
+    </div>
+
+    <div class="row">
+      <label>Coherence (order)</label>
+      <input id="coh" type="range" min="0" max="100" value="55">
+      <span class="val" id="cohVal">0.55</span>
+    </div>
+
+    <div class="row">
+      <label>Seed (pattern)</label>
+      <input id="seed" type="range" min="0" max="1000" value="120">
+      <span class="val" id="seedVal">120</span>
+    </div>
+
+    <div class="pillbar">
+      <button id="btnReset">Reset</button>
+      <button id="btnPause">Pause</button>
+      <button id="btnExport">Export PNG</button>
+    </div>
+
+    <div class="kpis">
+      <div><strong>Field speed</strong></div><div id="kSpeed" class="val">—</div>
+      <div><strong>Noise roughness</strong></div><div id="kRough" class="val">—</div>
+      <div><strong>Color mood</strong></div><div id="kMood" class="val">—</div>
+    </div>
+
+    <div class="hint">
+      <strong>How it maps (suggestion):</strong><br/>
+      • Negative affect + high arousal → more jagged flow + higher capture risk (dizziness/compulsion).<br/>
+      • Positive affect + moderate arousal → smoother flow + “deep meaning” capacity.<br/>
+      • Coherence is a stand-in for regulation / kindness-field / boundary stability.<br/>
+      Tip: if it looks frantic, lower arousal or raise coherence and watch the field settle.
+    </div>
+
+    <div class="hint">
+      Want a direct SR2 bridge? Add three overlays next: “Aperture faces” (somatic/cognitive/relational) and a “Markov blanket” boundary ring.
+    </div>
+  </div>
+
+  <div class="stage">
+    <div id="canvasMount"></div>
+  </div>
+</div>
+
+<script>
+let sliders = {};
+let paused = false;
+
+let particles = [];
+const N = 2200;
+let flowScale = 0.010;
+let t = 0;
+
+function setup() {
+  const w = Math.min(1100, window.innerWidth - 420);
+  const h = Math.min(700, window.innerHeight - 170);
+  const c = createCanvas(Math.max(620, w), Math.max(520, h));
+  c.parent("canvasMount");
+  pixelDensity(1);
+  colorMode(HSB, 360, 100, 100, 100);
+  background(0, 0, 5);
+
+  sliders.affect = document.getElementById("affect");
+  sliders.arousal = document.getElementById("arousal");
+  sliders.sensory = document.getElementById("sensory");
+  sliders.coh = document.getElementById("coh");
+  sliders.seed = document.getElementById("seed");
+
+  const updUI = () => {
+    const a = sliders.affect.value/100;
+    const r = sliders.arousal.value/100;
+    const s = sliders.sensory.value/100;
+    const c = sliders.coh.value/100;
+    document.getElementById("affectVal").textContent = a.toFixed(2);
+    document.getElementById("arousalVal").textContent = r.toFixed(2);
+    document.getElementById("sensoryVal").textContent = s.toFixed(2);
+    document.getElementById("cohVal").textContent = c.toFixed(2);
+    document.getElementById("seedVal").textContent = sliders.seed.value;
+
+    const speed = (0.35 + r*2.2) * (0.65 + s*0.9) * (0.55 + (1-c)*0.9);
+    const rough = 0.25 + (1-c)*0.9 + r*0.35;
+    const mood = a < -0.25 ? "cool / vigilant" : (a > 0.25 ? "warm / open" : "neutral / searching");
+    document.getElementById("kSpeed").textContent = speed.toFixed(2);
+    document.getElementById("kRough").textContent = rough.toFixed(2);
+    document.getElementById("kMood").textContent = mood;
+  };
+
+  Object.values(sliders).forEach(el => {
+    el.addEventListener("input", () => {
+      updUI();
+      reseed();
+    });
+  });
+
+  document.getElementById("btnReset").addEventListener("click", () => resetField(true));
+  document.getElementById("btnPause").addEventListener("click", () => {
+    paused = !paused;
+    document.getElementById("btnPause").textContent = paused ? "Resume" : "Pause";
+  });
+  document.getElementById("btnExport").addEventListener("click", () => {
+    saveCanvas("emotion_field", "png");
+  });
+
+  updUI();
+  resetField(true);
+}
+
+function reseed(){
+  noiseSeed(parseInt(sliders.seed.value));
+}
+
+function resetField(hard=false){
+  reseed();
+  if(hard){
+    background(0, 0, 5);
+    particles = [];
+    for(let i=0;i<N;i++){
+      particles.push(makeParticle());
+    }
+  } else {
+    fill(0,0,5,15);
+    noStroke();
+    rect(0,0,width,height);
+  }
+}
+
+function makeParticle(){
+  return { x: random(width), y: random(height), vx: 0, vy: 0, life: int(random(80, 280)) };
+}
+
+function flowAngle(x,y, rough){
+  const n1 = noise(x*flowScale, y*flowScale, t*0.003);
+  const n2 = noise(x*flowScale*2.2, y*flowScale*2.2, 1000 + t*0.002);
+  const n = lerp(n1, n2, rough);
+  return n * TWO_PI * 2.0;
+}
+
+function draw(){
+  if(paused){ return; }
+
+  const affect = sliders.affect.value/100;     // -1..1
+  const arousal = sliders.arousal.value/100;   // 0..1
+  const sensory = sliders.sensory.value/100;   // 0..1
+  const coh = sliders.coh.value/100;           // 0..1
+
+  const rough = constrain(0.10 + (1-coh)*0.85 + arousal*0.15, 0.08, 0.98);
+  const baseSpeed = (0.6 + arousal*2.8) * (0.7 + sensory*0.9) * (0.55 + (1-coh)*0.75);
+
+  const hue = (210 + affect*120 + 360) % 360;
+  const sat = constrain(20 + arousal*70 + sensory*20, 15, 95);
+  const bri = constrain(35 + coh*55, 25, 95);
+  const alpha = constrain(10 + coh*25, 8, 45);
+
+  noStroke();
+  fill(0,0,5, 6 + (1-coh)*10);
+  rect(0,0,width,height);
+
+  stroke(hue, sat, bri, alpha);
+  strokeWeight(1);
+
+  for(let p of particles){
+    const ang = flowAngle(p.x, p.y, rough);
+    const cx = width*0.5, cy = height*0.5;
+    const dx = (cx - p.x)/width;
+    const dy = (cy - p.y)/height;
+    const pull = 0.15 * (0.3 + coh*0.7);
+
+    p.vx = cos(ang)*baseSpeed + dx*pull;
+    p.vy = sin(ang)*baseSpeed + dy*pull;
+
+    const nx = p.x + p.vx;
+    const ny = p.y + p.vy;
+
+    line(p.x, p.y, nx, ny);
+
+    p.x = nx; p.y = ny;
+    p.life--;
+
+    if(p.life <= 0 || p.x < -20 || p.x > width+20 || p.y < -20 || p.y > height+20){
+      p.x = random(width);
+      p.y = random(height);
+      p.life = int(random(80, 280));
+    }
+  }
+
+  push();
+  noStroke();
+  fill(0,0,100, 8);
+  rect(14, 14, 250, 64, 10);
+  fill(0,0,10, 70);
+  textSize(12);
+  text("Affect + Arousal → field behavior\nCoherence → stability / aperture support", 26, 38);
+  pop();
+
+  t += 1;
+}
+</script>
+</body>
+</html>
