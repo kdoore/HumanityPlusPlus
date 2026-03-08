@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pass 3 — Giant Pumpkin · Commitment Pool</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Share+Tech+Mono&display=swap');
+
+:root {
+  --void:    #05060c;
+  --deep:    #080a12;
+  --rim:     #181e2c;
+  --rim2:    #222d40;
+  --txt:     #c0c8d8;
+  --txt-mid: #607080;
+  --txt-dim: #303840;
+
+  /* Pumpkin palette — amber, rust, gold */
+  --pk-core: #d47820;
+  --pk-mid:  #e8a040;
+  --pk-glow: #f0c060;
+  --pk-dim:  #6a3c10;
+
+  /* Pool palette — mycelium green, cool teal, deep soil */
+  --pl-core: #58a878;
+  --pl-mid:  #78c898;
+  --pl-glow: #a8e8c0;
+  --pl-soil: #284838;
+
+  /* Crack / vacant place */
+  --crack:   #f8f4e8;
+  --soc:     #e8d060;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--void); color: var(--txt); font-family: 'Cormorant Garamond', serif; overflow-x: hidden; }
+
+/* ── LAYOUT ── */
+.page { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+
+/* ── HEADER ── */
+.hdr {
+  padding: 20px 0 14px;
+  border-bottom: 1px solid var(--rim);
+  display: flex; align-items: flex-end; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px;
+}
+.hdr-left h1 {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300; font-size: clamp(1rem, 2.2vw, 1.4rem);
+  letter-spacing: 0.12em; color: var(--txt);
+}
+.hdr-sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.48rem; color: var(--txt-dim);
+  letter-spacing: 0.22em; margin-top: 3px;
+}
+.mode-badge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.58rem; letter-spacing: 0.15em;
+  padding: 6px 16px; border: 1px solid;
+  transition: all 1.2s ease;
+}
+.mb-pumpkin { color: var(--pk-mid); border-color: var(--pk-mid); background: rgba(232,160,64,0.07); }
+.mb-crack   { color: var(--crack);  border-color: var(--crack);  background: rgba(248,244,232,0.07); }
+.mb-pool    { color: var(--pl-mid); border-color: var(--pl-mid); background: rgba(120,200,152,0.07); }
+
+/* ── STAGE ── */
+.stage {
+  display: grid;
+  grid-template-columns: 176px 1fr 176px;
+  gap: 0; padding: 14px 0;
+  align-items: start;
+}
+
+/* ── PANELS ── */
+.panel { padding: 0 14px; display: flex; flex-direction: column; gap: 10px; }
+.panel.left  { border-right: 1px solid var(--rim); padding-right: 16px; }
+.panel.right { border-left:  1px solid var(--rim); padding-left:  16px; }
+.ph {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.46rem; letter-spacing: 0.24em;
+  color: var(--txt-dim); padding-bottom: 7px;
+  border-bottom: 1px solid var(--rim); margin-bottom: 4px;
+}
+
+/* DIKW rows */
+.dikw { display: flex; flex-direction: column-reverse; gap: 3px; }
+.dr {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 8px; border-left: 2px solid;
+  transition: opacity 0.9s, transform 0.9s, box-shadow 0.6s, border-color 0.8s;
+}
+.dr.d { border-color: #404e68; background: rgba(64,78,104,0.15); }
+.dr.i { border-color: #507888; background: rgba(80,120,136,0.15); }
+.dr.k { border-color: #5890a8; background: rgba(88,144,168,0.15); }
+.dr.u { border-color: #70b098; background: rgba(112,176,152,0.15); }
+.dr.w { border-color: #f0e8c0; background: rgba(240,232,192,0.07); }
+.dl { font-family: 'Cormorant Garamond', serif; font-size: 1rem; font-weight: 600; min-width: 13px; }
+.dr.d .dl { color: #506080; } .dr.i .dl { color: #6090a8; }
+.dr.k .dl { color: #68a8c8; } .dr.u .dl { color: #80c0a8; }
+.dr.w .dl { color: #f0e8c0; filter: drop-shadow(0 0 5px rgba(240,232,192,0.5)); }
+.dn { font-size: 0.72rem; color: var(--txt-mid); line-height: 1.2; }
+.dt { font-family: 'Share Tech Mono', monospace; font-size: 0.42rem; color: var(--txt-dim); margin-top: 1px; }
+.dikw-sep {
+  margin: 4px 0; padding: 3px 7px;
+  border: 1px dashed rgba(240,232,192,0.12);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.42rem; color: rgba(240,232,192,0.2);
+  text-align: center; line-height: 1.5;
+}
+
+/* Readout box */
+.rbox { padding: 8px 10px; background: var(--deep); border: 1px solid var(--rim); }
+.rb-title { font-family: 'Share Tech Mono', monospace; font-size: 0.44rem; letter-spacing: 0.2em; color: var(--txt-dim); margin-bottom: 7px; }
+.rb-row { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.rb-key { font-family: 'Share Tech Mono', monospace; font-size: 0.43rem; color: var(--txt-dim); }
+.rb-val { font-family: 'Share Tech Mono', monospace; font-size: 0.5rem; transition: color 0.6s; }
+.rb-bar { height: 3px; background: var(--rim); border-radius: 2px; overflow: hidden; margin-top: 5px; }
+.rb-fill { height: 100%; border-radius: 2px; transition: width 0.7s, background 0.7s; }
+
+/* Question box */
+.qbox {
+  padding: 10px 11px;
+  border: 1px solid; border-radius: 0;
+  transition: border-color 0.8s, background 0.8s;
+  font-size: 0.88rem; font-style: italic;
+  line-height: 1.6; color: var(--txt-mid);
+}
+
+/* ── CENTER ── */
+.center { display: flex; flex-direction: column; align-items: center; padding: 0 6px; }
+#mainCanvas { display: block; width: 100%; max-width: 580px; cursor: crosshair; }
+.c-hint {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.43rem; color: var(--txt-dim);
+  letter-spacing: 0.15em; margin-top: 6px; text-align: center;
+}
+
+/* ── VOLATILITY WAVE ── */
+#volCanvas { display: block; width: 100%; }
+.vol-labels {
+  display: flex; justify-content: space-between;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.42rem; margin-top: 3px;
+}
+.vl-low { color: var(--pk-dim); } .vl-high { color: var(--pl-mid); }
+
+/* ── CONTROLS ── */
+.controls {
+  padding: 12px 0 8px; border-top: 1px solid var(--rim);
+  display: flex; flex-wrap: wrap; gap: 10px 18px;
+  align-items: center; justify-content: center;
+}
+.cg { display: flex; align-items: center; gap: 7px; }
+.cl { font-family: 'Share Tech Mono', monospace; font-size: 0.47rem; letter-spacing: 0.1em; color: var(--txt-dim); min-width: 94px; }
+input[type=range] { -webkit-appearance: none; appearance: none; width: 88px; height: 3px; border-radius: 2px; outline: none; }
+#sK { background: linear-gradient(90deg, var(--rim2), var(--pk-mid)); }
+#sK::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--pk-mid); cursor: pointer; }
+#sI { background: linear-gradient(90deg, var(--rim2), #f0e8c0); }
+#sI::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #f0e8c0; cursor: pointer; }
+#sD { background: linear-gradient(90deg, var(--rim2), var(--pl-mid)); }
+#sD::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--pl-mid); cursor: pointer; }
+.cv { font-family: 'Share Tech Mono', monospace; font-size: 0.5rem; min-width: 24px; }
+#vK { color: var(--pk-mid); } #vI { color: #f0e8c0; } #vD { color: var(--pl-mid); }
+
+.toggle-row { display: flex; gap: 10px; align-items: center; }
+.tbtn {
+  padding: 8px 20px; font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem; letter-spacing: 0.18em;
+  border: 1px solid; background: transparent; cursor: pointer;
+  transition: all 0.3s;
+}
+.tbtn.pk { border-color: var(--pk-mid); color: var(--pk-mid); }
+.tbtn.pk:hover, .tbtn.pk.active { background: rgba(232,160,64,0.14); }
+.tbtn.pl { border-color: var(--pl-mid); color: var(--pl-mid); }
+.tbtn.pl:hover, .tbtn.pl.active { background: rgba(120,200,152,0.14); }
+
+/* ── FOOTER ── */
+.footer {
+  padding: 12px 0 20px; text-align: center;
+  border-top: 1px solid var(--rim);
+  font-size: 0.88rem; font-style: italic;
+  color: var(--txt-dim); line-height: 1.8;
+}
+.footer strong { font-style: normal; font-weight: 400; color: var(--txt-mid); }
+
+@media (max-width: 700px) {
+  .stage { grid-template-columns: 1fr; }
+  .panel { border: none; padding: 8px 0; border-top: 1px solid var(--rim); }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-left">
+    <h1>Giant Pumpkin · Commitment Pool</h1>
+    <div class="hdr-sub">CLOSED SPACE vs OPEN SPACE · DIKW TOROID PASS 3 · BRIDGING SPIRAL SR2</div>
+  </div>
+  <div class="mode-badge mb-pumpkin" id="modeBadge">◈ GIANT PUMPKIN</div>
+</header>
+
+<!-- STAGE -->
+<div class="stage">
+
+  <!-- LEFT PANEL -->
+  <div class="panel left">
+    <div class="ph">DIKW STACK</div>
+    <div class="dikw">
+      <div class="dr d" id="dr0"><span class="dl">D</span><div><div class="dn">Data</div><div class="dt">raw signal</div></div></div>
+      <div class="dr i" id="dr1"><span class="dl">I</span><div><div class="dn">Information</div><div class="dt">pattern</div></div></div>
+      <div class="dr k" id="dr2"><span class="dl">K</span><div><div class="dn">Knowledge</div><div class="dt">stable model</div></div></div>
+      <div class="dikw-sep">── ML stops here ──</div>
+      <div class="dr u" id="dr3"><span class="dl">U</span><div><div class="dn">Understanding</div><div class="dt">crack required</div></div></div>
+      <div class="dr w" id="dr4"><span class="dl">W</span><div><div class="dn">Wisdom</div><div class="dt">vacant place</div></div></div>
+    </div>
+
+    <div class="rbox">
+      <div class="rb-title">SYSTEM STATE</div>
+      <div class="rb-row"><span class="rb-key">SPACE</span><span class="rb-val" id="rbSpace">CLOSED</span></div>
+      <div class="rb-row"><span class="rb-key">FLOW TYPE</span><span class="rb-val" id="rbFlow">EXTRACTION</span></div>
+      <div class="rb-row"><span class="rb-key">CRACK</span><span class="rb-val" id="rbCrack" style="color:var(--txt-dim)">SEALED</span></div>
+      <div class="rb-row"><span class="rb-key">HOLONOMY</span><span class="rb-val" id="rbHolo" style="color:var(--txt-dim)">ZERO</span></div>
+      <div class="rb-bar"><div class="rb-fill" id="rbBar" style="width:15%;background:var(--pk-dim);"></div></div>
+    </div>
+  </div>
+
+  <!-- CENTER CANVAS -->
+  <div class="center">
+    <canvas id="mainCanvas"></canvas>
+    <div class="c-hint">ADJUST SLIDERS · TOGGLE MODES · WATCH FOR THE CRACK</div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel right">
+    <div class="ph">VOLATILITY · MAD</div>
+    <canvas id="volCanvas" height="120"></canvas>
+    <div class="vol-labels">
+      <span class="vl-low">maze · stable</span>
+      <span class="vl-high">crack · alive</span>
+    </div>
+
+    <div class="rbox" style="margin-top:6px;">
+      <div class="rb-title">NETWORK CHARACTER</div>
+      <div class="rb-row"><span class="rb-key">KINDNESS</span><span class="rb-val" id="rbKind">IN-GROUP</span></div>
+      <div class="rb-row"><span class="rb-key">IMAGINATION</span><span class="rb-val" id="rbImag">ELABORATING</span></div>
+      <div class="rb-row"><span class="rb-key">DISEQUILIB.</span><span class="rb-val" id="rbDis">SUPPRESSED</span></div>
+    </div>
+
+    <div class="qbox" id="qbox" style="border-color:var(--rim);background:rgba(24,30,44,0.5);">
+      Which of these does the information environment you live in most resemble — and what would it take to change that?
+    </div>
+  </div>
+
+</div>
+
+<!-- CONTROLS -->
+<div class="controls">
+  <div class="cg">
+    <span class="cl">❄ KINDNESS</span>
+    <input type="range" id="sK" min="0" max="100" value="70">
+    <span class="cv" id="vK">70</span>
+  </div>
+  <div class="cg">
+    <span class="cl">✦ IMAGINATION</span>
+    <input type="range" id="sI" min="0" max="100" value="65">
+    <span class="cv" id="vI">65</span>
+  </div>
+  <div class="cg">
+    <span class="cl">◈ DISEQUILIB.</span>
+    <input type="range" id="sD" min="0" max="100" value="12">
+    <span class="cv" id="vD">12</span>
+  </div>
+  <div class="toggle-row">
+    <button class="tbtn pk active" id="btnPk" onclick="setMode('pumpkin')">◈ GIANT PUMPKIN</button>
+    <button class="tbtn pl" id="btnPl" onclick="setMode('pool')">❋ COMMITMENT POOL</button>
+  </div>
+</div>
+
+<div class="footer">
+  <strong>Giant Pumpkin:</strong> all nutrients flow to the centre. Beautiful. Coherent. High resonance. The network exhausts itself feeding one node.<br>
+  <strong>Commitment Pool:</strong> trusted promises circulate freely. Slightly irregular. Alive. Cracks open — and through them, genuine novelty enters.
+</div>
+</div>
+
+<script>
+// ── HELPERS ──────────────────────────────────────────────────────
+const cl  = (v,lo=0,hi=1) => Math.max(lo, Math.min(hi, v));
+const hxA = (hex, a) => hex + Math.round(cl(a)*255).toString(16).padStart(2,'0');
+const rgb = (r,g,b,a) => `rgba(${r},${g},${b},${cl(a)})`;
+
+// ── STATE ────────────────────────────────────────────────────────
+let K=70, Im=65, Dis=12;
+let mode = 'pumpkin';       // 'pumpkin' | 'crack' | 'pool'
+let crackTimer = 0;         // 0 = no crack, >0 = crack in progress (counts down)
+const CRACK_DUR = 120;      // frames for crack/vacant-place transition
+let poolStrength = 0;       // 0=full pumpkin, 1=full pool (lerps during crack)
+let frame = 0;
+
+// Volatility history for MAD waveform
+const VOL_HIST = 200;
+let volHistory = new Array(VOL_HIST).fill(0.5);
+let volPtr = 0;
+
+// ── CANVAS ───────────────────────────────────────────────────────
+const CV  = document.getElementById('mainCanvas');
+const ctx = CV.getContext('2d');
+let W, H, CX, CY, R;
+
+function resizeMain() {
+  const pw = CV.parentElement.getBoundingClientRect().width;
+  W  = CV.width  = Math.min(pw - 12, 580);
+  H  = CV.height = Math.round(W * 0.8);
+  CX = W/2; CY = H/2;
+  R  = Math.min(W,H) * 0.3;
+}
+window.addEventListener('resize', resizeMain);
+resizeMain();
+
+// ── NODE NETWORK ─────────────────────────────────────────────────
+const NODE_N = 16;
+
+class NetNode {
+  constructor(i) {
+    this.i = i;
+    this.angle = (i / NODE_N) * Math.PI * 2;
+    this.baseR = R * (0.55 + Math.random() * 0.3);
+    this.x = 0; this.y = 0;
+    this.lv = Math.floor(Math.random() * 5);
+    this.active = Math.random();
+    this.ph = Math.random() * Math.PI * 2;
+    this.wobbleAmp = 0;  // pool wobble
+    this.conns = [];     // filled after all created
+  }
+  pos(ps) {
+    // In pumpkin: nodes drift toward center (tighter orbit)
+    // In pool: nodes expand and wobble organically
+    const contraction = 1 - ps * 0.35;
+    const wobble = ps * this.wobbleAmp * Math.sin(this.ph + frame * 0.018);
+    const r = this.baseR * contraction + wobble * 12;
+    this.x = CX + Math.cos(this.angle + ps * 0.04 * Math.sin(frame * 0.008 + this.i)) * r;
+    this.y = CY + Math.sin(this.angle + ps * 0.04 * Math.sin(frame * 0.008 + this.i)) * r * 0.68;
+  }
+  update(ps) {
+    this.ph += 0.022 + ps * 0.015;
+    this.wobbleAmp = cl(this.wobbleAmp + (ps > 0.5 ? 0.03 : -0.02));
+    // Pumpkin: lower DIKW levels get reinforced, upper suppressed
+    // Pool: all levels can rise
+    const k = K/100, dis = Dis/100;
+    if (ps < 0.4) {
+      if (Math.random() < 0.01 && this.lv > 0) this.lv--;
+    } else {
+      if (Math.random() < 0.008 * k * dis && this.lv < 4) this.lv++;
+      if (Math.random() < 0.004 * (1-k) && this.lv > 0) this.lv--;
+    }
+    this.active = cl(this.active + (Math.random() - 0.5) * 0.06);
+    this.pos(ps);
+  }
+}
+
+const nodes = Array.from({length: NODE_N}, (_, i) => new NetNode(i));
+// Assign connections: each node connects to 2 adjacent + 1 distant
+nodes.forEach((n, i) => {
+  n.conns = [
+    (i+1) % NODE_N,
+    (i+2) % NODE_N,
+    (i + Math.floor(NODE_N/3)) % NODE_N,
+    (i + Math.floor(NODE_N*2/3)) % NODE_N,
+  ];
+});
+
+// ── PARTICLES ────────────────────────────────────────────────────
+const DIKW_C = [
+  [64, 80, 104],    // D
+  [80, 120, 136],   // I
+  [88, 148, 176],   // K
+  [112, 188, 152],  // U
+  [240, 232, 192],  // W
+];
+const PUMP_C = [212, 120, 32];
+const POOL_C = [88, 168, 120];
+
+class Particle {
+  constructor() { this.init(); }
+  init() {
+    const ang = Math.random() * Math.PI * 2;
+    const r   = R * (0.2 + Math.random() * 0.8);
+    this.x  = CX + Math.cos(ang) * r;
+    this.y  = CY + Math.sin(ang) * r * 0.68;
+    this.vx = (Math.random() - 0.5) * 1.2;
+    this.vy = (Math.random() - 0.5) * 0.8;
+    this.lv = Math.floor(Math.random() * 5);
+    this.a  = 0.4 + Math.random() * 0.5;
+    this.sz = 1 + Math.random() * 2;
+    this.life = Math.random() * 300;
+    this.mx   = 200 + Math.random() * 300;
+    this.ph   = Math.random() * Math.PI * 2;
+    this.vacant = false;  // crack state — luminous grey
+    this.vacantTimer = 0;
+  }
+  update(ps) {
+    this.ph += 0.04;
+    this.life++;
+    const k = K/100, dis = Dis/100;
+
+    if (this.vacant) {
+      // Suspended in vacant-place state
+      this.vacantTimer--;
+      this.vx *= 0.94; this.vy *= 0.94;
+      if (this.vacantTimer <= 0) {
+        this.vacant = false;
+        // Transform: emerge at higher DIKW level if conditions met
+        if (k > 0.5 && dis > 0.3) {
+          this.lv = Math.min(4, this.lv + 1 + (Math.random() < dis ? 1 : 0));
+        }
+      }
+    } else if (ps < 0.35) {
+      // PUMPKIN: all particles spiral toward center
+      const dx = CX - this.x, dy = CY - this.y;
+      const dist = Math.hypot(dx, dy) + 0.001;
+      const pull = 0.012 * (1 - ps) * (1 + (1 - this.lv/4) * 0.5);
+      this.vx += (dx/dist) * pull;
+      this.vy += (dy/dist) * pull * 0.68;
+      this.vx *= 0.97; this.vy *= 0.97;
+      // Near center: demote DIKW level
+      if (dist < R * 0.15 && this.lv > 0 && Math.random() < 0.05) this.lv--;
+    } else {
+      // POOL: organic circulation + mycelium threading toward nearest nodes
+      let nx = 0, ny = 0, nDist = Infinity;
+      nodes.forEach(n => {
+        const d = Math.hypot(n.x - this.x, n.y - this.y);
+        if (d < nDist) { nDist = d; nx = n.x; ny = n.y; }
+      });
+      if (nDist < R * 0.55) {
+        const dx = nx - this.x, dy = ny - this.y;
+        const d  = nDist + 0.001;
+        const pull = 0.006 * ps * k;
+        this.vx += (dx/d) * pull;
+        this.vy += (dy/d) * pull;
+      }
+      // Random organic drift
+      this.vx += (Math.random()-0.5) * 0.04 * ps;
+      this.vy += (Math.random()-0.5) * 0.03 * ps;
+      this.vx *= 0.98; this.vy *= 0.98;
+
+      // Disequilibration: crack opens, particle enters vacant-place
+      if (dis > 0.25 && ps > 0.5 && Math.random() < dis * 0.003) {
+        this.vacant = true;
+        this.vacantTimer = 30 + Math.floor(Math.random() * 40);
+        this.vx *= 0.1; this.vy *= 0.1;
+      }
+    }
+
+    this.x += this.vx;
+    this.y += this.vy;
+
+    // Boundary soft bounce
+    const edge = R * 1.3;
+    if (this.x < CX - edge) this.vx += 0.08;
+    if (this.x > CX + edge) this.vx -= 0.08;
+    if (this.y < CY - edge) this.vy += 0.08;
+    if (this.y > CY + edge) this.vy -= 0.08;
+
+    if (this.life > this.mx) this.init();
+  }
+  draw(ps) {
+    const lr = this.life / this.mx;
+    const fade = lr < 0.1 ? lr*10 : lr > 0.85 ? (1-lr)/0.15 : 1;
+
+    if (this.vacant) {
+      // Vacant-place: luminous grey-white, pulsing
+      const va = cl(fade * 0.7 * (0.6 + 0.4*Math.sin(this.ph*3)));
+      const vg = ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,this.sz*5);
+      vg.addColorStop(0, `rgba(248,244,232,${va})`);
+      vg.addColorStop(1, 'rgba(248,244,232,0)');
+      ctx.beginPath(); ctx.arc(this.x,this.y,this.sz*5,0,Math.PI*2);
+      ctx.fillStyle = vg; ctx.fill();
+      ctx.beginPath(); ctx.arc(this.x,this.y,this.sz,0,Math.PI*2);
+      ctx.fillStyle = `rgba(248,244,232,${cl(va*1.2)})`;
+      ctx.fill();
+      return;
+    }
+
+    const c = DIKW_C[this.lv];
+    // In pumpkin: upper DIKW levels are stained amber (false wisdom)
+    // In pool: upper levels glow with genuine color
+    let r=c[0], g=c[1], b=c[2];
+    if (ps < 0.4 && this.lv >= 3) {
+      // Pumpkin stain on upper levels
+      const stain = 1 - ps * 2.5;
+      r = Math.round(r * (1-stain) + PUMP_C[0] * stain);
+      g = Math.round(g * (1-stain) + PUMP_C[1] * stain);
+      b = Math.round(b * (1-stain) + PUMP_C[2] * stain);
+    }
+
+    const suppression = ps < 0.4 ? (1-ps*2.5) * (this.lv/4) * 0.7 : 0;
+    const alpha = cl(fade * this.a * (1 - suppression));
+    if (alpha < 0.02) return;
+
+    // Wisdom glow in pool mode
+    if (this.lv === 4 && ps > 0.5 && alpha > 0.06) {
+      const gs = this.sz * (3 + Im/30);
+      const wg = ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,gs);
+      wg.addColorStop(0, `rgba(240,232,192,${alpha*0.55})`);
+      wg.addColorStop(1, 'rgba(240,232,192,0)');
+      ctx.beginPath(); ctx.arc(this.x,this.y,gs,0,Math.PI*2);
+      ctx.fillStyle = wg; ctx.fill();
+    }
+
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.sz * (1+0.15*Math.sin(this.ph)), 0, Math.PI*2);
+    ctx.fillStyle = rgb(r,g,b,alpha);
+    ctx.fill();
+  }
+}
+
+const PART_N = 200;
+const parts = Array.from({length: PART_N}, () => new Particle());
+
+// ── DRAW MAIN ────────────────────────────────────────────────────
+function drawMain() {
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#05060c';
+  ctx.fillRect(0,0,W,H);
+
+  const ps = poolStrength;
+  const k=K/100, im=Im/100, dis=Dis/100;
+
+  // ── BACKGROUND FIELD ──
+  if (ps < 0.5) {
+    // Pumpkin amber glow from center
+    const pg = ctx.createRadialGradient(CX,CY,0,CX,CY,R*1.4);
+    pg.addColorStop(0, `rgba(212,120,32,${(1-ps)*0.15})`);
+    pg.addColorStop(0.4, `rgba(232,160,64,${(1-ps)*0.06})`);
+    pg.addColorStop(1, 'transparent');
+    ctx.beginPath(); ctx.arc(CX,CY,R*1.4,0,Math.PI*2);
+    ctx.fillStyle = pg; ctx.fill();
+  } else {
+    // Pool mycelium green field
+    const mg = ctx.createRadialGradient(CX,CY,0,CX,CY,R*1.6);
+    mg.addColorStop(0, `rgba(88,168,120,${ps*0.08})`);
+    mg.addColorStop(1, 'transparent');
+    ctx.beginPath(); ctx.arc(CX,CY,R*1.6,0,Math.PI*2);
+    ctx.fillStyle = mg; ctx.fill();
+  }
+
+  // ── CRACK PHASE: VACANT-PLACE BLOOM ──
+  if (crackTimer > 0) {
+    const progress = crackTimer / CRACK_DUR;
+    const bloom = Math.sin(progress * Math.PI);
+    const cg = ctx.createRadialGradient(CX,CY,0,CX,CY,R*1.2*bloom);
+    cg.addColorStop(0, `rgba(248,244,232,${bloom*0.45})`);
+    cg.addColorStop(0.5, `rgba(248,244,232,${bloom*0.12})`);
+    cg.addColorStop(1, 'rgba(248,244,232,0)');
+    ctx.beginPath(); ctx.arc(CX,CY,R*1.2,0,Math.PI*2);
+    ctx.fillStyle = cg; ctx.fill();
+    // Crack text
+    if (bloom > 0.4) {
+      ctx.font = '11px Cormorant Garamond'; ctx.textAlign='center';
+      ctx.fillStyle = `rgba(248,244,232,${bloom*0.6})`;
+      ctx.fillText('neither · nor', CX, CY - 12);
+      ctx.font = '8px Share Tech Mono';
+      ctx.fillStyle = `rgba(248,244,232,${bloom*0.35})`;
+      ctx.fillText('VACANT PLACE', CX, CY + 8);
+    }
+  }
+
+  // ── NETWORK EDGES ──
+  nodes.forEach(n => n.update(ps));
+  nodes.forEach((n, i) => {
+    n.conns.forEach(j => {
+      const m = nodes[j];
+      const c1 = DIKW_C[n.lv], c2 = DIKW_C[m.lv];
+      const dist = Math.hypot(n.x-m.x, n.y-m.y);
+
+      if (ps < 0.35) {
+        // Pumpkin: threads all converge toward center, not between nodes
+        const pull = cl((1-ps)*0.7*(0.3+n.active*0.7));
+        const midX = (n.x + CX) / 2 + (Math.random()-0.5)*3*(1-ps);
+        const midY = (n.y + CY) / 2;
+        const eg = ctx.createLinearGradient(n.x,n.y,CX,CY);
+        eg.addColorStop(0, rgb(PUMP_C[0],PUMP_C[1],PUMP_C[2],pull*0.5));
+        eg.addColorStop(1, rgb(PUMP_C[0],PUMP_C[1],PUMP_C[2],pull*0.1));
+        ctx.beginPath(); ctx.moveTo(n.x,n.y);
+        ctx.quadraticCurveTo(midX,midY,CX,CY);
+        ctx.strokeStyle = eg;
+        ctx.lineWidth = 0.5 + (1-ps)*1.5;
+        ctx.stroke();
+      } else {
+        // Pool: organic threads between nodes
+        const str = cl(ps * k * (0.3 + n.active*0.6));
+        if (str < 0.04) return;
+        const wobX = Math.sin(frame*0.012 + i*0.7) * 8 * ps;
+        const wobY = Math.cos(frame*0.01  + j*0.5) * 8 * ps;
+        const mx2 = (n.x+m.x)/2 + wobX;
+        const my2 = (n.y+m.y)/2 + wobY;
+        const eg = ctx.createLinearGradient(n.x,n.y,m.x,m.y);
+        eg.addColorStop(0, rgb(c1[0],c1[1],c1[2],str));
+        eg.addColorStop(1, rgb(c2[0],c2[1],c2[2],str*0.4));
+        ctx.beginPath(); ctx.moveTo(n.x,n.y);
+        ctx.quadraticCurveTo(mx2,my2,m.x,m.y);
+        ctx.strokeStyle = eg;
+        ctx.lineWidth = 0.4 + ps*k*2 + n.active;
+        ctx.stroke();
+      }
+    });
+  });
+
+  // ── PUMPKIN CENTER ATTRACTOR ──
+  if (ps < 0.6) {
+    const cs = 12 + (1-ps)*28;
+    const cg = ctx.createRadialGradient(CX,CY,0,CX,CY,cs*2.5);
+    cg.addColorStop(0, `rgba(212,120,32,${(1-ps)*0.85})`);
+    cg.addColorStop(0.5, `rgba(232,160,64,${(1-ps)*0.3})`);
+    cg.addColorStop(1, 'transparent');
+    ctx.beginPath(); ctx.arc(CX,CY,cs*2.5,0,Math.PI*2);
+    ctx.fillStyle = cg; ctx.fill();
+    // Extraction spines
+    const spines = 6;
+    for (let s=0; s<spines; s++) {
+      const ang = (s/spines)*Math.PI*2 + frame*0.003;
+      const len = R * 0.85 * (1-ps);
+      const ex  = CX + Math.cos(ang)*len;
+      const ey  = CY + Math.sin(ang)*len*0.68;
+      const sg  = ctx.createLinearGradient(CX,CY,ex,ey);
+      sg.addColorStop(0, `rgba(212,120,32,${(1-ps)*0.5})`);
+      sg.addColorStop(1, 'rgba(212,120,32,0)');
+      ctx.beginPath(); ctx.moveTo(CX,CY); ctx.lineTo(ex,ey);
+      ctx.strokeStyle = sg; ctx.lineWidth = (1-ps)*3; ctx.stroke();
+    }
+    // Label
+    ctx.font = `${Math.round(10+((1-ps)*8))}px Cormorant Garamond`;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = `rgba(212,120,32,${(1-ps)*0.5})`;
+    ctx.fillText('◈', CX, CY+5);
+  }
+
+  // ── NODE DOTS ──
+  nodes.forEach(n => {
+    const c = ps > 0.4 ? DIKW_C[n.lv] : PUMP_C;
+    const na = cl((ps > 0.4 ? ps : (1-ps)) * (0.4 + n.active*0.6));
+    const nr = 2.5 + ps*2 + n.active*2.5;
+    const ng = ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,nr*2.5);
+    ng.addColorStop(0, rgb(c[0],c[1],c[2],na));
+    ng.addColorStop(1, rgb(c[0],c[1],c[2],0));
+    ctx.beginPath(); ctx.arc(n.x,n.y,nr*2.5,0,Math.PI*2);
+    ctx.fillStyle = ng; ctx.fill();
+    ctx.beginPath(); ctx.arc(n.x,n.y,nr*(1+0.25*Math.sin(n.ph)),0,Math.PI*2);
+    ctx.fillStyle = rgb(c[0],c[1],c[2],cl(na*0.9));
+    ctx.fill();
+  });
+
+  // ── PARTICLES ──
+  parts.forEach(p => { p.update(ps); p.draw(ps); });
+
+  // ── TORUS OUTLINE ──
+  const torusR = R * (0.55 + ps*0.15);
+  const torusAlpha = 0.04 + ps*0.06;
+  for (let phi=0; phi<Math.PI*2; phi+=Math.PI/10) {
+    ctx.beginPath(); let first=true;
+    for (let theta=0; theta<=Math.PI*2+0.1; theta+=0.15) {
+      const rM=torusR*0.3, RM=torusR*0.65;
+      const x3=(RM+rM*Math.cos(theta))*Math.cos(phi);
+      const y3=(RM+rM*Math.cos(theta))*Math.sin(phi);
+      const z3=rM*Math.sin(theta);
+      const px=CX+x3+z3*0.25;
+      const py=CY+(y3*Math.cos(0.32)-z3*Math.sin(0.32))*0.62;
+      first?(ctx.moveTo(px,py),first=false):ctx.lineTo(px,py);
+    }
+    const torusColor = ps > 0.5 ? '#78c898' : '#e8a040';
+    ctx.strokeStyle = hxA(torusColor, torusAlpha);
+    ctx.lineWidth = 0.5; ctx.stroke();
+  }
+
+  // ── SOC ZONE RING (mid-transition) ──
+  if (ps > 0.25 && ps < 0.75) {
+    const socA = cl(Math.min(ps-0.25, 0.75-ps) / 0.2) * 0.5;
+    ctx.beginPath();
+    ctx.arc(CX, CY, R*(0.6+0.2*Math.sin(frame*0.015)), 0, Math.PI*2);
+    ctx.strokeStyle = hxA('#e8d060', socA * 0.6);
+    ctx.lineWidth = 1; ctx.setLineDash([3,7]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.font = '7px Share Tech Mono'; ctx.textAlign='center';
+    ctx.fillStyle = hxA('#e8d060', socA*0.5);
+    ctx.fillText('SELF-ORGANIZED CRITICALITY — CRACK IS POSSIBLE HERE', CX, CY - R*0.85);
+  }
+}
+
+// ── VOLATILITY WAVE ──────────────────────────────────────────────
+const VC   = document.getElementById('volCanvas');
+const vctx = VC.getContext('2d');
+function resizeVol() { VC.width = VC.parentElement.getBoundingClientRect().width || 170; }
+window.addEventListener('resize', resizeVol); resizeVol();
+
+function drawVol() {
+  const VW = VC.width, VH = VC.height;
+  vctx.clearRect(0,0,VW,VH);
+  vctx.fillStyle = '#05060c'; vctx.fillRect(0,0,VW,VH);
+
+  const ps = poolStrength;
+  const dis = Dis/100, k = K/100;
+
+  // Generate current volatility value
+  // Pumpkin = low MAD (stable, maze)
+  // Pool + disequilibration = high MAD (alive, crack-prone)
+  const baseVol = ps * dis * 0.85 + (1-ps)*0.08;
+  const noise   = Math.sin(frame*0.23)*0.12 + Math.sin(frame*0.07)*0.06;
+  const curVol  = cl(baseVol + noise * ps);
+  volHistory[volPtr] = curVol;
+  volPtr = (volPtr+1) % VOL_HIST;
+
+  // Draw waveform
+  const cy2 = VH * 0.5;
+  vctx.beginPath();
+  for (let i=0; i<VOL_HIST; i++) {
+    const idx = (volPtr + i) % VOL_HIST;
+    const x = (i / (VOL_HIST-1)) * VW;
+    const amp = VH*0.38;
+    const y = cy2 + (volHistory[idx] - 0.5) * amp * 2;
+    i===0 ? vctx.moveTo(x,y) : vctx.lineTo(x,y);
+  }
+  const wg = vctx.createLinearGradient(0,0,VW,0);
+  wg.addColorStop(0, `rgba(212,120,32,${0.3 + (1-ps)*0.5})`);
+  wg.addColorStop(0.5, `rgba(232,208,96,0.6)`);
+  wg.addColorStop(1, `rgba(88,168,120,${0.3+ps*0.5})`);
+  vctx.strokeStyle = wg; vctx.lineWidth = 1.5; vctx.stroke();
+
+  // MAD value label
+  const mad = Math.abs(curVol - 0.5) * 2;
+  vctx.font = '7px Share Tech Mono'; vctx.textAlign='right';
+  vctx.fillStyle = mad > 0.4 ? 'rgba(120,200,152,0.6)' : 'rgba(212,120,32,0.4)';
+  vctx.fillText(`MAD ${mad.toFixed(2)}`, VW-3, VH-4);
+
+  // Axis
+  vctx.strokeStyle = 'rgba(48,56,64,0.6)'; vctx.lineWidth=1;
+  vctx.beginPath(); vctx.moveTo(0,cy2); vctx.lineTo(VW,cy2); vctx.stroke();
+}
+
+// ── UI READOUTS ──────────────────────────────────────────────────
+function updateUI() {
+  const ps = poolStrength;
+  const k=K/100, im=Im/100, dis=Dis/100;
+
+  // Mode badge
+  const badge = document.getElementById('modeBadge');
+  if (crackTimer > 0) {
+    badge.textContent = '◈ THE CRACK — VACANT PLACE';
+    badge.className = 'mode-badge mb-crack';
+  } else if (ps < 0.4) {
+    badge.textContent = '◈ GIANT PUMPKIN';
+    badge.className = 'mode-badge mb-pumpkin';
+  } else if (ps < 0.7) {
+    badge.textContent = '◈ SELF-ORGANIZED CRITICALITY';
+    badge.className = 'mode-badge mb-crack';
+  } else {
+    badge.textContent = '❋ COMMITMENT POOL';
+    badge.className = 'mode-badge mb-pool';
+  }
+
+  // System state readout
+  const spaceEl = document.getElementById('rbSpace');
+  const flowEl  = document.getElementById('rbFlow');
+  const crackEl = document.getElementById('rbCrack');
+  const holoEl  = document.getElementById('rbHolo');
+  const barEl   = document.getElementById('rbBar');
+
+  if (ps < 0.35) {
+    spaceEl.textContent = 'CLOSED'; spaceEl.style.color = 'var(--pk-mid)';
+    flowEl.textContent  = 'EXTRACTION'; flowEl.style.color = 'var(--pk-mid)';
+    crackEl.textContent = 'SEALED'; crackEl.style.color = 'var(--txt-dim)';
+    holoEl.textContent  = 'ZERO'; holoEl.style.color = 'var(--txt-dim)';
+    barEl.style.width   = `${15 + ps*30}%`;
+    barEl.style.background = 'var(--pk-mid)';
+  } else if (ps < 0.7) {
+    spaceEl.textContent = 'OPENING'; spaceEl.style.color = 'var(--soc)';
+    flowEl.textContent  = 'TRANSITION'; flowEl.style.color = 'var(--soc)';
+    crackEl.textContent = crackTimer>0?'OPEN':'POSSIBLE'; crackEl.style.color='var(--soc)';
+    holoEl.textContent  = dis>0.3?'FORMING':'LOW'; holoEl.style.color='var(--soc)';
+    barEl.style.width   = `${40+ps*30}%`;
+    barEl.style.background = 'var(--soc)';
+  } else {
+    spaceEl.textContent = 'OPEN'; spaceEl.style.color = 'var(--pl-mid)';
+    flowEl.textContent  = 'COMMITMENT POOL'; flowEl.style.color = 'var(--pl-mid)';
+    crackEl.textContent = 'ACTIVE'; crackEl.style.color = 'var(--pl-mid)';
+    holoEl.textContent  = dis>0.4?'STRUCTURED':'LOW'; holoEl.style.color='var(--pl-mid)';
+    barEl.style.width   = `${70+ps*28}%`;
+    barEl.style.background = 'var(--pl-mid)';
+  }
+
+  // Network character
+  const kLabel  = k>0.6 ? (ps>0.5?'INCLUSIVE':'IN-GROUP') : 'WITHDRAWN';
+  const imLabel = im>0.5 ? (ps>0.5?'TRANSFORMATIVE':'ELABORATING') : 'NARROW';
+  const dLabel  = dis>0.4 ? (ps>0.5?'PRODUCTIVE':'TURBULENT') : (ps>0.5?'MAZE':'SUPPRESSED');
+  const kC  = k>0.6 ? (ps>0.5?'var(--pl-mid)':'var(--pk-mid)') : 'var(--txt-dim)';
+  const imC = im>0.5 ? (ps>0.5?'var(--pl-mid)':'var(--soc)')   : 'var(--txt-dim)';
+  const dC  = dis>0.4 ? (ps>0.5?'var(--pl-mid)':'var(--soc)')  : 'var(--txt-dim)';
+  document.getElementById('rbKind').textContent = kLabel;
+  document.getElementById('rbKind').style.color = kC;
+  document.getElementById('rbImag').textContent = imLabel;
+  document.getElementById('rbImag').style.color = imC;
+  document.getElementById('rbDis').textContent  = dLabel;
+  document.getElementById('rbDis').style.color  = dC;
+
+  // DIKW suppression
+  [0,1,2,3,4].forEach(i => {
+    const el = document.getElementById(`dr${i}`);
+    if (!el) return;
+    const sup = ps < 0.4 ? (1-ps*2.5)*(i/4)*0.8 : 0;
+    el.style.opacity   = cl(1-sup);
+    el.style.transform = sup>0.3 ? `translateX(${-sup*7}px)` : '';
+    // Highlight accessible layer in pool
+    if (ps > 0.6 && i <= Math.round(2 + (k+dis)*1.5)) {
+      el.style.boxShadow = `inset 2px 0 6px rgba(88,168,120,0.15)`;
+    } else {
+      el.style.boxShadow = 'none';
+    }
+  });
+
+  // Question box
+  const qbox = document.getElementById('qbox');
+  if (ps < 0.3) {
+    qbox.style.borderColor = 'rgba(232,160,64,0.2)';
+    qbox.style.background  = 'rgba(232,160,64,0.04)';
+    qbox.style.color       = 'rgba(192,160,80,0.5)';
+  } else if (ps > 0.7) {
+    qbox.style.borderColor = 'rgba(88,168,120,0.4)';
+    qbox.style.background  = 'rgba(88,168,120,0.06)';
+    qbox.style.color       = 'rgba(160,210,180,0.8)';
+  } else {
+    qbox.style.borderColor = 'rgba(232,208,96,0.3)';
+    qbox.style.background  = 'rgba(232,208,96,0.04)';
+    qbox.style.color       = 'rgba(220,196,100,0.65)';
+  }
+}
+
+// ── MODE SWITCHING ───────────────────────────────────────────────
+let targetPool = 0;
+
+function setMode(m) {
+  if (m === 'pumpkin') {
+    targetPool = 0;
+    document.getElementById('btnPk').classList.add('active');
+    document.getElementById('btnPl').classList.remove('active');
+    animSlider('sD','vD',Dis,8,v=>Dis=v);
+  } else {
+    // Trigger crack transition
+    crackTimer = CRACK_DUR;
+    targetPool = 1;
+    document.getElementById('btnPl').classList.add('active');
+    document.getElementById('btnPk').classList.remove('active');
+    animSlider('sD','vD',Dis,55,v=>Dis=v);
+    animSlider('sK','vK',K,72,v=>K=v);
+    animSlider('sI','vI',Im,68,v=>Im=v);
+  }
+}
+
+function animSlider(id, vid, from, to, setter) {
+  let s=0; const steps=80;
+  const tick = () => {
+    s++;
+    const e = 0.5 - 0.5*Math.cos(Math.PI*s/steps);
+    const v = Math.round(from + (to-from)*e);
+    setter(v);
+    document.getElementById(id).value = v;
+    document.getElementById(vid).textContent = v;
+    if (s < steps) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+// Controls
+document.getElementById('sK').addEventListener('input',function(){K=+this.value;document.getElementById('vK').textContent=K;});
+document.getElementById('sI').addEventListener('input',function(){Im=+this.value;document.getElementById('vI').textContent=Im;});
+document.getElementById('sD').addEventListener('input',function(){Dis=+this.value;document.getElementById('vD').textContent=Dis;});
+
+// Click to trigger a local crack
+CV.addEventListener('click', e => {
+  if (poolStrength > 0.4 && Dis > 20) {
+    crackTimer = Math.max(crackTimer, 60);
+    // Briefly send nearby particles to vacant state
+    const rect = CV.getBoundingClientRect();
+    const mx = (e.clientX-rect.left)*(W/rect.width);
+    const my = (e.clientY-rect.top)*(H/rect.height);
+    parts.forEach(p => {
+      if (Math.hypot(p.x-mx,p.y-my) < 80 && !p.vacant) {
+        p.vacant = true;
+        p.vacantTimer = 25 + Math.floor(Math.random()*30);
+        p.vx *= 0.1; p.vy *= 0.1;
+      }
+    });
+  }
+});
+
+// ── MAIN LOOP ────────────────────────────────────────────────────
+function loop() {
+  frame++;
+
+  // Animate poolStrength toward target
+  const diff = targetPool - poolStrength;
+  if (Math.abs(diff) > 0.002) {
+    // Crack phase: hold near 0.5 briefly
+    if (crackTimer > 0) {
+      crackTimer--;
+      const crackProgress = 1 - crackTimer/CRACK_DUR;
+      poolStrength = crackProgress < 0.5
+        ? poolStrength + diff * 0.008   // slow approach
+        : poolStrength + diff * 0.022;  // faster emergence
+    } else {
+      poolStrength += diff * (targetPool===0 ? 0.015 : 0.01);
+    }
+    poolStrength = cl(poolStrength, 0, 1);
+  }
+
+  drawMain();
+  drawVol();
+  updateUI();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>
