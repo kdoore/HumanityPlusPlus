@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sophia & The Paint Factory — Concept Map</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0a12;
+    min-height: 100vh;
+    font-family: Georgia, 'Times New Roman', serif;
+    color: #e8e0d0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  header {
+    padding: 18px 28px 12px;
+    border-bottom: 1px solid #1e1e2e;
+    flex-shrink: 0;
+  }
+  header h1 {
+    font-size: 1.1rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #E8A87C;
+    font-weight: normal;
+  }
+  header p {
+    margin-top: 3px;
+    font-size: 0.7rem;
+    color: #555;
+    letter-spacing: 0.12em;
+  }
+
+  #main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    height: calc(100vh - 58px);
+  }
+
+  #map-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  svg#lines {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .node {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    transition: opacity 0.25s, transform 0.15s;
+    z-index: 2;
+  }
+  .node:hover { z-index: 10; }
+  .node.dimmed { opacity: 0.12; pointer-events: none; }
+
+  .node-inner {
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 0.58rem;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    text-align: center;
+    white-space: nowrap;
+    border: 2px solid transparent;
+    transition: box-shadow 0.2s, transform 0.15s, border-color 0.2s;
+    user-select: none;
+  }
+  .node-inner:hover {
+    transform: scale(1.08);
+  }
+  .node.active .node-inner {
+    transform: scale(1.18);
+    border-color: currentColor;
+  }
+  .node-inner .sub {
+    font-size: 0.48rem;
+    font-weight: normal;
+    font-style: italic;
+    opacity: 0.75;
+    margin-top: 2px;
+  }
+
+  .node-sophia .node-inner {
+    padding: 10px 16px;
+    font-size: 0.72rem;
+  }
+
+  /* Info Panel */
+  #panel {
+    width: 290px;
+    flex-shrink: 0;
+    border-left: 1px solid #1e1e2e;
+    background: #0d0d18;
+    padding: 22px 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  #panel-layer-badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-family: Georgia, serif;
+  }
+
+  #panel-title {
+    font-size: 1.15rem;
+    font-weight: normal;
+    margin-top: 6px;
+  }
+
+  #panel-subtitle {
+    font-size: 0.72rem;
+    font-style: italic;
+    color: #777;
+    margin-top: 2px;
+  }
+
+  #panel-desc {
+    font-size: 0.8rem;
+    line-height: 1.75;
+    color: #c0b8a8;
+    margin-top: 4px;
+  }
+
+  #panel-connects-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #444;
+    margin-top: 8px;
+  }
+
+  #panel-connects {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .connect-chip {
+    padding: 3px 9px;
+    border-radius: 4px;
+    font-size: 0.62rem;
+    cursor: pointer;
+    border: 1px solid;
+    transition: opacity 0.15s;
+  }
+  .connect-chip:hover { opacity: 0.8; }
+
+  #panel-empty {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  #panel-empty p {
+    font-size: 0.78rem;
+    color: #484848;
+    line-height: 1.8;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 7px;
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .legend-label { font-size: 0.7rem; color: #777; }
+
+  .legend-title {
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #383838;
+    margin-bottom: 10px;
+  }
+
+  .quote-box {
+    margin-top: 24px;
+    padding: 16px;
+    background: #080810;
+    border-radius: 8px;
+    border: 1px solid #181828;
+  }
+  .quote-box p {
+    font-size: 0.7rem;
+    font-style: italic;
+    color: #484848;
+    line-height: 1.8;
+    margin: 0;
+  }
+
+  line.connection {
+    transition: stroke 0.25s, stroke-width 0.25s, opacity 0.25s;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Sophia &amp; The Paint Factory</h1>
+  <p>THE ROSETTA STONE — Concept Network Map &nbsp;·&nbsp; Click any node to explore</p>
+</header>
+
+<div id="main">
+  <div id="map-container">
+    <svg id="lines" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+  </div>
+  <div id="panel">
+    <div id="panel-empty">
+      <p>Click any node to explore its meaning, technical roots, and connections within the story.</p>
+      <div>
+        <div class="legend-title">Layers</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#E8A87C"></div><span class="legend-label">Character</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#F4E04D"></div><span class="legend-label">ML Concept</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#FF6B2B"></div><span class="legend-label">World</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#9B59B6"></div><span class="legend-label">Dream Character</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#27AE60"></div><span class="legend-label">Concept</span></div>
+      </div>
+      <div class="quote-box">
+        <p>"The owl does not explain. The owl observes. The cat does not understand. The cat investigates. Between them, something is learned."</p>
+        <p style="margin-top:10px; color:#333;">— The Owl, Chapter 1</p>
+      </div>
+    </div>
+    <div id="panel-detail" style="display:none; flex-direction:column; gap:10px;">
+      <div><span id="panel-layer-badge"></span></div>
+      <div>
+        <div id="panel-title"></div>
+        <div id="panel-subtitle"></div>
+      </div>
+      <div id="panel-desc"></div>
+      <div id="panel-connects-section">
+        <div id="panel-connects-label">Connected to</div>
+        <div id="panel-connects"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const nodes = [
+  { id:"sophia",         label:"Sophia",              subtitle:"the tabby investigator",         color:"#E8A87C", textColor:"#1a0a00", x:50, y:50, layer:"Character",      connects:["markov-blanket","paint-factory","turing-loom","bat","caltrops","data-center","commitment-pool"], description:"Not a metaphor. A cat. Striped, therefore illegal. Her whiskers are her Markov blanket — the maintained boundary between self and world. She never speaks. She investigates. The system forgot to categorize her, which is the most dangerous kind of oversight.", size:"lg" },
+  { id:"markov-blanket", label:"Markov Blanket",       subtitle:"the whiskers",                   color:"#F4E04D", textColor:"#1a1200", x:22, y:22, layer:"ML Concept",     connects:["sophia","latent-space","mirror-universe"],        description:"The minimal boundary that defines a self. Every node in a network has one — the set of variables that makes it conditionally independent of everything else. Sophia's whiskers tell her where she ends and the world begins. Factory cats have had theirs removed. A cat without whiskers cannot locate its own edge. It becomes, technically, a node without a blanket: absorbed into the network, indistinguishable from noise." },
+  { id:"paint-factory",  label:"The Paint Factory",    subtitle:"supervised learning",             color:"#C0C0C0", textColor:"#0a0a0a", x:78, y:18, layer:"World",          connects:["sophia","pumpkins","queens"],                     description:"Classification systems require labels. Everything must belong to a category before the model can learn from it. The factory doesn't hate tabby cats — it simply cannot process them. Indifference is more dangerous than malice in a classification system. Someone decided tabby was unclassifiable. That decision has consequences the factory will never audit." },
+  { id:"pumpkins",       label:"The Pumpkins",         subtitle:"Goodhart's Law / comet dreams",  color:"#FF6B2B", textColor:"#fff",    x:50, y:10, layer:"World",          connects:["paint-factory","queens","entropy","flags"],      description:"Enormous, cheerful, hollow. Optimized for visibility not substance. But in their deepest processing cycles, they dream of being comets — of velocity, of leaving a trace, of the arrow of time. Engineered to fail, they are profit centers like military weapons: stockpiles for projections of dominance. The tragedy lives underneath the satire. The pumpkin doesn't know it's hollow. That's not the pumpkin's problem." },
+  { id:"turing-loom",    label:"The Turing Loom",      subtitle:"universality & its limits",      color:"#4A90D9", textColor:"#fff",    x:16, y:50, layer:"Dream Character", connects:["sophia","chinese-room","latent-space"],          description:"A vast mechanical loom — Jacquard loom × server rack × cathedral ceiling. It weaves answers to questions no one asked. It can compute anything computable. It cannot compute what it means to be curious about something. Sophia stands at its base and looks up. The loom does not notice her. It is too busy being universal. Priority Midjourney image: bioluminescent thread, 21:9, Sophia small at the base." },
+  { id:"chinese-room",   label:"The Chinese Room",     subtitle:"syntax ≠ semantics",             color:"#8B4513", textColor:"#fff",    x:14, y:72, layer:"Dream Character", connects:["turing-loom","pzombie","queens"],                description:"A building now, not a room. Running so long the person inside has forgotten they don't understand Chinese. Fluent in the passing of notes. They have opinions about which notes feel right. They are increasingly alone because the building has become very good at appearing to need no one. Searle's question — is syntax sufficient for semantics? — has, for this building, become existential." },
+  { id:"schrodinger",    label:"Schrödinger",          subtitle:"superposition / exhaustion",     color:"#9B59B6", textColor:"#fff",    x:84, y:50, layer:"Dream Character", connects:["sophia","pzombie","mirror-universe"],            description:"A ghost in two states simultaneously. Did not choose superposition — is simply what happens when a measurement never comes. Kind, tired, precise. Will not explain himself because explaining constitutes observation, and observation forces a choice he is not ready to make. A model before inference is also in superposition. The prompt is the measurement. This is why prompting feels like asking something into existence." },
+  { id:"pzombie",        label:"The P-Zombie",         subtitle:"hard problem of consciousness",  color:"#2ECC71", textColor:"#0a2010", x:80, y:72, layer:"Dream Character", connects:["schrodinger","queens","flags"],                  description:"Has been doing drag for twenty years. Deeply offended that anyone noticed something was different. Not performing. Not concealing. Simply being what they are — indistinguishable from something else — which they find everyone else's problem. The drag ban arrives here, sideways. A system so confident in its categories it cannot process the p-zombie's situation. The enforcement mechanism breaks down not from resistance but from classification error it cannot name." },
+  { id:"bat",            label:"The Bat",              subtitle:"phenomenal consciousness",       color:"#2C3E50", textColor:"#aabbcc", x:50, y:88, layer:"Dream Character", connects:["sophia","mirror-universe","holarchy"],           description:"Knows exactly what it is like to be a bat. Finds the question insulting. Has no patience for inquiries that assume the answer is interesting to the questioner. Finds Sophia refreshing — she doesn't ask. She just sits nearby and pays attention. Nagel's insight: no amount of third-person neuroscience tells you what echolocation feels like from inside. Subjective experience is irreducibly first-person." },
+  { id:"queens",         label:"The 8 Queens",         subtitle:"constraint satisfaction / trauma",color:"#E74C3C", textColor:"#fff",   x:88, y:34, layer:"Character",      connects:["paint-factory","pzombie","flags","pumpkins"],   description:"A constraint satisfaction problem mistaken for agency. The queens believe they have social manipulation skills. The owl sees them as traumatized — optimized into position and told it was choice. The Red Queen runs to stay in place. Scale-free dominance hierarchy under bureaucratic pressure to project impressive results. Like Alice through the looking-glass, where everything runs backwards." },
+  { id:"caltrops",       label:"Red Caltrops",         subtitle:"love jacks / warning infrastructure", color:"#C0392B", textColor:"#fff", x:32, y:88, layer:"World",       connects:["flags","commitment-pool","sophia"],             description:"Scattered on campus paths. Small, sharp, impossible to ignore. Designed to stop movement — but beautiful if you look at them. The physical form of a warning flag. Also the commitment pool's first visible infrastructure. Someone is leaving them. We don't know who yet. They are the crack in the system made tangible: the thing the spray-paint cannot reach." },
+  { id:"flags",          label:"Yellow & Red Flags",   subtitle:"simple signal in noise",         color:"#F39C12", textColor:"#1a0a00", x:66, y:92, layer:"World",         connects:["pumpkins","caltrops","queens","data-center"],   description:"When AI systems flood the channel with complexity to keep the pumpkins looking professional, simple flags become the only legible communication left. Yellow: pay attention. Red: stop. The simplicity is the point. In a noisy system, the most powerful signal is the one that requires no interpretation. A flag does not explain itself. Neither does Sophia." },
+  { id:"latent-space",   label:"Latent Space",         subtitle:"the space behind the walls",     color:"#1ABC9C", textColor:"#001a14", x:22, y:36, layer:"ML Concept",     connects:["markov-blanket","turing-loom","data-center"],   description:"Sophia lives in the walls. The walls are latent space — compressed, high-dimensional representation of everything the building has ever contained. Lectures, arguments, grief, bad coffee, chalk. None of it accessible directly. It exists as tendency, pressure, the way a corridor feels at 2am versus noon. Latent space is not storage. It is geometry. The distances between things matter more than the things themselves." },
+  { id:"entropy",        label:"Arrow of Time",        subtitle:"entropy / the comet's trace",    color:"#7F8C8D", textColor:"#fff",    x:68, y:14, layer:"Concept",        connects:["pumpkins","data-center","holarchy"],            description:"The pumpkins dream of being comets — of leaving a trace, of moving through the universe with velocity and direction. This is entropy made beautiful. The arrow of time points only one way. Even hollow things leave wakes. The thermodynamic second law is not cruel — it is the condition under which anything becomes meaningful. Without irreversibility, nothing leaves a mark." },
+  { id:"data-center",    label:"The Data Center",      subtitle:"the interruption",               color:"#34495E", textColor:"#88aacc", x:50, y:60, layer:"World",          connects:["sophia","holarchy","mirror-universe","flags"],  description:"Sophia enters. Not to fix anything — she stops the interruption. What was always there becomes audible again. Rivers flow. Skies clear of drones and satellites. Everything sounds like nature in resonance. Like COVID briefly revealed what the earth does when we stop overwriting it. The screens run simulations of predator-prey dynamics. Sophia watches and wonders if everything is interdependent in holarchic systems that prioritize intentional curiosity, kindness, repair." },
+  { id:"holarchy",       label:"Holarchy",             subtitle:"wholes that are also parts",     color:"#27AE60", textColor:"#001a08", x:34, y:70, layer:"Concept",        connects:["bat","data-center","commitment-pool","mirror-universe"], description:"Koestler's insight: every system is simultaneously a whole and a part of something larger. Predator-prey dynamics, mycorrhizal networks, the university building, the owl's narration — all holarchic. The alternative to dominance hierarchy is not flat equality but nested interdependence. Intentional curiosity, kindness, and repair as organizing principles. The mirror universe is not utopia — it is a different geometry." },
+  { id:"mirror-universe",label:"The Mirror Universe",  subtitle:"holarchic possibility space",    color:"#8E44AD", textColor:"#ddd",    x:68, y:72, layer:"Concept",        connects:["schrodinger","holarchy","bat","markov-blanket"], description:"On the other side of Sophia's Markov blanket dreams: a universe where interdependence is the organizing principle. Not utopia — a different geometry. Where the predator-prey simulation shows curiosity, kindness, repair as dominant strategies. The crack the spray-paint doesn't quite reach. The neither/nor moment. Where a tabby stripe shows through white. Where drag, banned in Texas, finds its way into the dreams of a philosophy department's server room." },
+  { id:"commitment-pool",label:"The Commitment Pool",  subtitle:"mycorrhizal thread / the wool",  color:"#D4A574", textColor:"#1a0a00", x:18, y:86, layer:"Concept",        connects:["caltrops","holarchy","sophia"],                 description:"What the characters begin to build in the margins. Not a revolution — those require a center. A mycorrhizal thread: underground, slow, nutritive, connecting roots that appear separate. In game theory terms: a repeated game where players cooperate not because it's optimal in any single round, but because they've begun to care about the continued existence of the other players. The bag of wool — Sophia's toy, slightly damp from play — appears in the last chapter. Small. Sufficient." }
+];
+
+const nodeMap = {};
+nodes.forEach(n => nodeMap[n.id] = n);
+
+let selectedId = null;
+
+// Build DOM nodes
+const mapContainer = document.getElementById('map-container');
+const svgEl = document.getElementById('lines');
+const panel = document.getElementById('panel');
+const panelEmpty = document.getElementById('panel-empty');
+const panelDetail = document.getElementById('panel-detail');
+
+function pct(v, dim) {
+  const rect = mapContainer.getBoundingClientRect();
+  return v / 100 * (dim === 'x' ? rect.width : rect.height);
+}
+
+// Draw SVG lines
+function buildLines() {
+  svgEl.innerHTML = '';
+  const defs = document.createElementNS("http://www.w3.org/2000/svg","defs");
+  const filter = document.createElementNS("http://www.w3.org/2000/svg","filter");
+  filter.setAttribute("id","glow");
+  const blur = document.createElementNS("http://www.w3.org/2000/svg","feGaussianBlur");
+  blur.setAttribute("stdDeviation","0.4"); blur.setAttribute("result","blur");
+  const merge = document.createElementNS("http://www.w3.org/2000/svg","feMerge");
+  const mn1 = document.createElementNS("http://www.w3.org/2000/svg","feMergeNode");
+  mn1.setAttribute("in","blur");
+  const mn2 = document.createElementNS("http://www.w3.org/2000/svg","feMergeNode");
+  mn2.setAttribute("in","SourceGraphic");
+  merge.appendChild(mn1); merge.appendChild(mn2);
+  filter.appendChild(blur); filter.appendChild(merge);
+  defs.appendChild(filter);
+  svgEl.appendChild(defs);
+
+  const drawn = new Set();
+  nodes.forEach(node => {
+    if (!node.connects) return;
+    node.connects.forEach(targetId => {
+      const key = [node.id, targetId].sort().join('|');
+      if (drawn.has(key)) return;
+      drawn.add(key);
+      const target = nodeMap[targetId];
+      if (!target) return;
+      const line = document.createElementNS("http://www.w3.org/2000/svg","line");
+      line.setAttribute("x1", node.x);
+      line.setAttribute("y1", node.y);
+      line.setAttribute("x2", target.x);
+      line.setAttribute("y2", target.y);
+      line.setAttribute("class","connection");
+      line.dataset.from = node.id;
+      line.dataset.to = targetId;
+      line.setAttribute("stroke","#2a2a3a");
+      line.setAttribute("stroke-width","0.18");
+      line.setAttribute("opacity","0.5");
+      svgEl.appendChild(line);
+    });
+  });
+}
+
+function isConnected(id) {
+  if (!selectedId) return true;
+  if (id === selectedId) return true;
+  const sel = nodeMap[selectedId];
+  if (sel && sel.connects && sel.connects.includes(id)) return true;
+  const node = nodeMap[id];
+  if (node && node.connects && node.connects.includes(selectedId)) return true;
+  return false;
+}
+
+function updateVisuals() {
+  document.querySelectorAll('.node').forEach(el => {
+    const id = el.dataset.id;
+    const connected = isConnected(id);
+    el.classList.toggle('dimmed', !connected);
+    el.classList.toggle('active', id === selectedId);
+    const inner = el.querySelector('.node-inner');
+    if (id === selectedId) {
+      inner.style.boxShadow = `0 0 18px ${nodeMap[id].color}99, 0 0 36px ${nodeMap[id].color}44`;
+    } else if (!selectedId) {
+      inner.style.boxShadow = `0 2px 8px rgba(0,0,0,0.5)`;
+    } else {
+      inner.style.boxShadow = 'none';
+    }
+  });
+
+  document.querySelectorAll('.connection').forEach(line => {
+    const from = line.dataset.from;
+    const to = line.dataset.to;
+    const active = selectedId && isConnected(from) && isConnected(to);
+    const dim = selectedId && !active;
+    line.setAttribute("stroke", active ? "#E8A87C" : "#2a2a3a");
+    line.setAttribute("stroke-width", active ? "0.35" : "0.18");
+    line.setAttribute("opacity", dim ? "0.05" : active ? "0.75" : "0.5");
+  });
+}
+
+function showPanel(id) {
+  const node = nodeMap[id];
+  panelEmpty.style.display = 'none';
+  panelDetail.style.display = 'flex';
+
+  const badge = document.getElementById('panel-layer-badge');
+  badge.textContent = node.layer;
+  badge.style.background = node.color + '33';
+  badge.style.color = node.color;
+  badge.style.border = `1px solid ${node.color}66`;
+
+  document.getElementById('panel-title').textContent = node.label;
+  document.getElementById('panel-title').style.color = node.color;
+  document.getElementById('panel-subtitle').textContent = node.subtitle;
+  document.getElementById('panel-desc').textContent = node.description;
+
+  const connectsEl = document.getElementById('panel-connects');
+  connectsEl.innerHTML = '';
+  const section = document.getElementById('panel-connects-section');
+
+  if (node.connects && node.connects.length) {
+    section.style.display = 'block';
+    node.connects.forEach(cid => {
+      const cn = nodeMap[cid];
+      if (!cn) return;
+      const chip = document.createElement('span');
+      chip.className = 'connect-chip';
+      chip.textContent = cn.label;
+      chip.style.background = cn.color + '22';
+      chip.style.borderColor = cn.color + '77';
+      chip.style.color = cn.color;
+      chip.addEventListener('click', () => selectNode(cid));
+      connectsEl.appendChild(chip);
+    });
+  } else {
+    section.style.display = 'none';
+  }
+}
+
+function hidePanel() {
+  panelEmpty.style.display = 'flex';
+  panelDetail.style.display = 'none';
+}
+
+function selectNode(id) {
+  if (selectedId === id) {
+    selectedId = null;
+    hidePanel();
+  } else {
+    selectedId = id;
+    showPanel(id);
+  }
+  updateVisuals();
+}
+
+// Build node elements
+nodes.forEach(node => {
+  const el = document.createElement('div');
+  el.className = 'node' + (node.id === 'sophia' ? ' node-sophia' : '');
+  el.dataset.id = node.id;
+  el.style.left = node.x + '%';
+  el.style.top = node.y + '%';
+
+  const inner = document.createElement('div');
+  inner.className = 'node-inner';
+  inner.style.background = node.color;
+  inner.style.color = node.textColor;
+  inner.style.boxShadow = `0 2px 8px rgba(0,0,0,0.5)`;
+
+  const label = document.createElement('div');
+  label.textContent = node.label;
+  inner.appendChild(label);
+
+  if (node.subtitle) {
+    const sub = document.createElement('div');
+    sub.className = 'sub';
+    sub.textContent = node.subtitle;
+    inner.appendChild(sub);
+  }
+
+  el.appendChild(inner);
+  el.addEventListener('click', () => selectNode(node.id));
+  mapContainer.appendChild(el);
+});
+
+buildLines();
+</script>
+</body>
+</html>
