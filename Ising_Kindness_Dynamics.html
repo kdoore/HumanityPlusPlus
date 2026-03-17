@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Kindness Field — Ising Model of Prosocial Dynamics</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Share+Tech+Mono&display=swap');
+
+:root {
+  --void: #04050a;
+  --deep: #070810;
+  --rim: #141824;
+  --rim2: #1e2535;
+  --txt: #b8c2d4;
+  --txt-mid: #5a6878;
+  --txt-dim: #2a3240;
+
+  /* Temperature phases */
+  --cold:  #2060c8;   /* ordered — authoritarian */
+  --crit:  #60c890;   /* critical — kindness field */
+  --hot:   #c84040;   /* chaotic — traumatic */
+
+  /* Spin states */
+  --spin-up:   #78d4f8;  /* care-oriented */
+  --spin-down: #f87850;  /* extraction-oriented */
+  --spin-crit: #f0e890;  /* vacant-place / neither-nor */
+
+  /* Ostrom compass */
+  --ostrom: #88d4a8;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--void);
+  color: var(--txt);
+  font-family: 'Cormorant Garamond', serif;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+.page { max-width: 1160px; margin: 0 auto; padding: 0 16px 32px; }
+
+/* HEADER */
+.hdr {
+  padding: 18px 0 12px;
+  border-bottom: 1px solid var(--rim);
+  display: flex; align-items: flex-end; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px;
+}
+.hdr h1 {
+  font-weight: 300; font-size: clamp(0.95rem, 2vw, 1.35rem);
+  letter-spacing: 0.1em;
+}
+.hdr-sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.44rem; color: var(--txt-dim);
+  letter-spacing: 0.2em; margin-top: 3px;
+}
+.phase-badge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.55rem; letter-spacing: 0.14em;
+  padding: 5px 14px; border: 1px solid;
+  transition: all 0.8s ease;
+}
+
+/* MAIN GRID */
+.main-grid {
+  display: grid;
+  grid-template-columns: 200px 1fr 200px;
+  gap: 0;
+  padding: 14px 0;
+  align-items: start;
+}
+
+/* PANELS */
+.panel { padding: 0 14px; }
+.panel.left  { border-right: 1px solid var(--rim); padding-right: 16px; }
+.panel.right { border-left:  1px solid var(--rim); padding-left:  16px; }
+.ph {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.43rem; letter-spacing: 0.22em;
+  color: var(--txt-dim); padding-bottom: 6px;
+  border-bottom: 1px solid var(--rim); margin-bottom: 10px;
+}
+
+/* STATE → TRAIT → FIELD progression */
+.stf { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.stf-row {
+  padding: 8px 10px;
+  border-left: 2px solid var(--rim2);
+  background: rgba(255,255,255,0.02);
+  transition: border-color 0.6s, background 0.6s;
+}
+.stf-row.active {
+  border-color: var(--crit);
+  background: rgba(96,200,144,0.05);
+}
+.stf-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.46rem; letter-spacing: 0.16em;
+  color: var(--txt-dim); margin-bottom: 3px;
+  transition: color 0.6s;
+}
+.stf-row.active .stf-label { color: var(--ostrom); }
+.stf-desc { font-size: 0.82rem; line-height: 1.4; color: var(--txt-mid); }
+.stf-row.active .stf-desc { color: var(--txt); }
+
+/* Readout boxes */
+.rbox { padding: 8px 10px; background: var(--deep); border: 1px solid var(--rim); margin-bottom: 8px; }
+.rb-title { font-family: 'Share Tech Mono', monospace; font-size: 0.42rem; letter-spacing: 0.18em; color: var(--txt-dim); margin-bottom: 6px; }
+.rb-row { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+.rb-key { font-family: 'Share Tech Mono', monospace; font-size: 0.41rem; color: var(--txt-dim); }
+.rb-val { font-family: 'Share Tech Mono', monospace; font-size: 0.48rem; transition: color 0.5s; }
+
+/* CENTER */
+.center { display: flex; flex-direction: column; align-items: center; padding: 0 8px; }
+#isingCanvas { display: block; cursor: crosshair; border: 1px solid var(--rim); }
+.canvas-hint {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.42rem; color: var(--txt-dim);
+  letter-spacing: 0.14em; margin-top: 5px; text-align: center;
+}
+
+/* MAGNETIZATION BAR */
+.mag-wrap { width: 100%; margin-top: 8px; }
+.mag-label {
+  display: flex; justify-content: space-between;
+  font-family: 'Share Tech Mono', monospace; font-size: 0.41rem; color: var(--txt-dim);
+  margin-bottom: 3px;
+}
+.mag-bar { height: 6px; background: var(--rim); border-radius: 3px; overflow: hidden; position: relative; }
+.mag-fill {
+  position: absolute; height: 100%; border-radius: 3px;
+  transition: width 0.3s, background 0.5s;
+}
+.mag-center { position: absolute; left: 50%; top: 0; width: 1px; height: 100%; background: var(--txt-dim); }
+
+/* ENTROPY WAVE */
+#entCanvas { display: block; width: 100%; margin-top: 6px; }
+
+/* OSTROM COMPASS */
+.ostrom-wrap { margin-top: 6px; }
+#ostromCanvas { display: block; margin: 0 auto; }
+.ostrom-title {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.42rem; letter-spacing: 0.16em;
+  color: var(--txt-dim); text-align: center; margin-bottom: 4px;
+}
+
+/* PRINCIPLE TOGGLES */
+.principles { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.prin-btn {
+  display: flex; align-items: flex-start; gap: 7px;
+  padding: 5px 8px; background: var(--deep);
+  border: 1px solid var(--rim); cursor: pointer;
+  transition: border-color 0.3s, background 0.3s;
+  text-align: left;
+}
+.prin-btn.on {
+  border-color: var(--ostrom);
+  background: rgba(136,212,168,0.05);
+}
+.prin-num {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.44rem; color: var(--txt-dim); min-width: 14px;
+  transition: color 0.3s;
+}
+.prin-btn.on .prin-num { color: var(--ostrom); }
+.prin-text { font-size: 0.72rem; color: var(--txt-mid); line-height: 1.3; transition: color 0.3s; }
+.prin-btn.on .prin-text { color: var(--txt); }
+
+/* CONTROLS */
+.controls {
+  padding: 12px 0 6px;
+  border-top: 1px solid var(--rim);
+  display: flex; flex-wrap: wrap; gap: 10px 24px;
+  align-items: center; justify-content: center;
+}
+.cg { display: flex; align-items: center; gap: 8px; }
+.cl {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.46rem; letter-spacing: 0.1em;
+  color: var(--txt-dim); min-width: 110px;
+}
+
+/* Temperature slider — styled as flame */
+input[type=range]#sT {
+  -webkit-appearance: none; appearance: none;
+  width: 120px; height: 4px; border-radius: 2px; outline: none;
+  background: linear-gradient(90deg, var(--cold), var(--crit), var(--hot));
+}
+input[type=range]#sT::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px;
+  border-radius: 50%; background: #fff; cursor: pointer;
+  box-shadow: 0 0 6px rgba(255,255,255,0.4);
+}
+
+input[type=range]#sV {
+  -webkit-appearance: none; appearance: none;
+  width: 120px; height: 4px; border-radius: 2px; outline: none;
+  background: linear-gradient(90deg, var(--spin-down), var(--spin-crit), var(--spin-up));
+}
+input[type=range]#sV::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px;
+  border-radius: 50%; background: #fff; cursor: pointer;
+}
+
+input[type=range]#sS {
+  -webkit-appearance: none; appearance: none;
+  width: 100px; height: 4px; border-radius: 2px; outline: none;
+  background: linear-gradient(90deg, var(--rim2), var(--ostrom));
+}
+input[type=range]#sS::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px;
+  border-radius: 50%; background: var(--ostrom); cursor: pointer;
+}
+
+.cv { font-family: 'Share Tech Mono', monospace; font-size: 0.5rem; min-width: 30px; }
+#vT { color: #ccc; } #vV { color: var(--spin-up); } #vS { color: var(--ostrom); }
+
+.btn-row { display: flex; gap: 8px; }
+.tbtn {
+  padding: 7px 16px; font-family: 'Share Tech Mono', monospace;
+  font-size: 0.54rem; letter-spacing: 0.14em;
+  border: 1px solid var(--rim2); background: transparent;
+  color: var(--txt-mid); cursor: pointer; transition: all 0.25s;
+}
+.tbtn:hover { border-color: var(--crit); color: var(--crit); background: rgba(96,200,144,0.06); }
+.tbtn.danger { border-color: var(--hot); color: var(--hot); }
+.tbtn.danger:hover { background: rgba(200,64,64,0.07); }
+
+/* QUESTION */
+.question {
+  padding: 11px 14px; margin-top: 8px;
+  border: 1px solid var(--rim2);
+  font-size: 0.9rem; font-style: italic;
+  line-height: 1.65; color: var(--txt-dim);
+  transition: all 0.8s ease;
+}
+
+/* FOOTER */
+.footer {
+  padding: 10px 0 18px; text-align: center;
+  border-top: 1px solid var(--rim);
+  font-size: 0.82rem; font-style: italic;
+  color: var(--txt-dim); line-height: 1.9; margin-top: 6px;
+}
+.footer strong { font-style: normal; font-weight: 400; color: var(--txt-mid); }
+
+@media (max-width: 720px) {
+  .main-grid { grid-template-columns: 1fr; }
+  .panel { border: none; padding: 8px 0; border-top: 1px solid var(--rim); }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="hdr">
+  <div>
+    <h1>The Kindness Field — Ising Model of Prosocial Dynamics</h1>
+    <div class="hdr-sub">STATE → TRAIT → FIELD · OSTROM VALUES VECTOR · BRIDGING SPIRAL SR2</div>
+  </div>
+  <div class="phase-badge" id="phaseBadge" style="color:var(--cold);border-color:var(--cold)">
+    ❄ FROZEN ORDER
+  </div>
+</header>
+
+<div class="main-grid">
+
+  <!-- LEFT: State → Trait → Field -->
+  <div class="panel left">
+    <div class="ph">STATE · TRAIT · FIELD</div>
+
+    <div class="stf">
+      <div class="stf-row" id="stfState">
+        <div class="stf-label">STATE</div>
+        <div class="stf-desc">A momentary spin — one node's orientation in this instant. Temporary. Context-dependent. Can flip.</div>
+      </div>
+      <div class="stf-row" id="stfTrait">
+        <div class="stf-label">TRAIT</div>
+        <div class="stf-desc">A persistent domain — a cluster of aligned nodes that maintain their pattern across time. Stable but not fixed.</div>
+      </div>
+      <div class="stf-row" id="stfField">
+        <div class="stf-label">FIELD</div>
+        <div class="stf-desc">The temperature condition — kindness as field. Neither a state nor a trait. The condition that makes states and traits possible.</div>
+      </div>
+    </div>
+
+    <div class="rbox">
+      <div class="rb-title">SYSTEM READOUT</div>
+      <div class="rb-row"><span class="rb-key">PHASE</span><span class="rb-val" id="rbPhase">FROZEN</span></div>
+      <div class="rb-row"><span class="rb-key">MAGNETIZATION</span><span class="rb-val" id="rbMag">+0.94</span></div>
+      <div class="rb-row"><span class="rb-key">DOMAIN SIZE</span><span class="rb-val" id="rbDomain">MONOLITHIC</span></div>
+      <div class="rb-row"><span class="rb-key">CASCADE RISK</span><span class="rb-val" id="rbCascade" style="color:var(--txt-dim)">ZERO</span></div>
+      <div class="rb-row"><span class="rb-key">OSTROM SCORE</span><span class="rb-val" id="rbOstrom" style="color:var(--ostrom)">0 / 8</span></div>
+    </div>
+
+    <div class="rbox">
+      <div class="rb-title">KINDNESS FIELD QUALITY</div>
+      <div class="rb-row"><span class="rb-key">TOO COLD</span><span class="rb-val" style="color:var(--cold)">RIGID ORDER</span></div>
+      <div class="rb-row"><span class="rb-key">CRITICAL T</span><span class="rb-val" style="color:var(--crit)">GENERATIVE</span></div>
+      <div class="rb-row"><span class="rb-key">TOO HOT</span><span class="rb-val" style="color:var(--hot)">CHAOTIC</span></div>
+    </div>
+
+    <div class="question" id="qbox">
+      Adjust the field temperature. Watch the domains. Then ask: what is the temperature of the information environment you spend most of your time in?
+    </div>
+  </div>
+
+  <!-- CENTER: Ising Grid -->
+  <div class="center">
+    <canvas id="isingCanvas"></canvas>
+    <div class="canvas-hint">CLICK ANY CELL TO FLIP · WATCH FOR CASCADES AT CRITICAL TEMPERATURE</div>
+
+    <div class="mag-wrap">
+      <div class="mag-label">
+        <span style="color:var(--spin-down)">◀ EXTRACTION</span>
+        <span>MAGNETIZATION</span>
+        <span style="color:var(--spin-up)">CARE ▶</span>
+      </div>
+      <div class="mag-bar">
+        <div class="mag-fill" id="magFill"></div>
+        <div class="mag-center"></div>
+      </div>
+    </div>
+
+    <canvas id="entCanvas" height="70"></canvas>
+  </div>
+
+  <!-- RIGHT: Ostrom Values Vector -->
+  <div class="panel right">
+    <div class="ph">VALUES VECTOR · OSTROM</div>
+
+    <div class="ostrom-title">COMMONS PRINCIPLES</div>
+    <canvas id="ostromCanvas" width="172" height="172"></canvas>
+
+    <div class="principles" id="principleList">
+      <!-- filled by JS -->
+    </div>
+  </div>
+
+</div>
+
+<!-- CONTROLS -->
+<div class="controls">
+  <div class="cg">
+    <span class="cl">❄ FIELD TEMPERATURE</span>
+    <input type="range" id="sT" min="0" max="100" value="15">
+    <span class="cv" id="vT">LOW</span>
+  </div>
+  <div class="cg">
+    <span class="cl">↕ VALUES VECTOR</span>
+    <input type="range" id="sV" min="0" max="100" value="75">
+    <span class="cv" id="vV">CARE</span>
+  </div>
+  <div class="cg">
+    <span class="cl">◈ OSTROM SCORE</span>
+    <input type="range" id="sS" min="0" max="8" value="0" step="1">
+    <span class="cv" id="vS">0</span>
+  </div>
+  <div class="btn-row">
+    <button class="tbtn" onclick="randomize()">⟳ RANDOMIZE</button>
+    <button class="tbtn" onclick="triggerAvalanche()">❋ AVALANCHE</button>
+    <button class="tbtn danger" onclick="freezeSystem()">❄ FREEZE</button>
+  </div>
+</div>
+
+<div class="footer">
+  <strong>Frozen Order (low T):</strong> all spins align — one domain, brittle, no diversity. The authoritarian classroom. The closed information ecosystem.<br>
+  <strong>Critical Temperature:</strong> domains of all sizes coexist. A single flip can cascade. This is the kindness field functioning. The avalanche of kindness becomes possible.<br>
+  <strong>Chaotic Disorder (high T):</strong> spins flip randomly, no coherent pattern. Trauma without regulation. Information noise without signal.<br>
+  <strong>The values vector</strong> (Ostrom principles active) determines whether aligned domains point toward care or extraction.
+</div>
+</div>
+
+<script>
+// ── OSTROM PRINCIPLES ─────────────────────────────────────────────
+const OSTROM = [
+  { short: 'Defined Boundaries',    full: 'Clear boundaries — who belongs, who decides' },
+  { short: 'Local Rules',           full: 'Rules match local conditions and needs' },
+  { short: 'Collective Choice',     full: 'Affected parties participate in rule-making' },
+  { short: 'Monitoring',            full: 'Behavior monitored by members themselves' },
+  { short: 'Graduated Sanctions',   full: 'Proportional consequences for violations' },
+  { short: 'Conflict Resolution',   full: 'Accessible, low-cost dispute mechanisms' },
+  { short: 'External Recognition',  full: 'External authorities recognize self-governance' },
+  { short: 'Nested Governance',     full: 'Polycentric — multiple overlapping institutions' },
+];
+
+let ostromActive = new Array(8).fill(false);
+
+// Build principle toggles
+const pList = document.getElementById('principleList');
+OSTROM.forEach((p, i) => {
+  const btn = document.createElement('div');
+  btn.className = 'prin-btn';
+  btn.id = `pb${i}`;
+  btn.innerHTML = `<span class="prin-num">${i+1}</span><span class="prin-text">${p.short}</span>`;
+  btn.addEventListener('click', () => {
+    ostromActive[i] = !ostromActive[i];
+    btn.classList.toggle('on', ostromActive[i]);
+    document.getElementById('sS').value = ostromActive.filter(Boolean).length;
+    document.getElementById('vS').textContent = ostromActive.filter(Boolean).length;
+    updateOstromCanvas();
+  });
+  pList.appendChild(btn);
+});
+
+// ── ISING STATE ───────────────────────────────────────────────────
+const N = 50; // grid size
+let grid = [];
+let T = 0.5;   // temperature 0-1
+let V = 0.75;  // values vector 0-1 (0=extraction, 1=care)
+let ostromScore = 0;
+
+// Initialize grid
+function initGrid(random = false) {
+  grid = [];
+  for (let i = 0; i < N; i++) {
+    grid[i] = [];
+    for (let j = 0; j < N; j++) {
+      if (random) grid[i][j] = Math.random() < 0.5 ? 1 : -1;
+      else grid[i][j] = Math.random() < V ? 1 : -1;
+    }
+  }
+}
+initGrid();
+
+// ── CANVAS SETUP ──────────────────────────────────────────────────
+const IC = document.getElementById('isingCanvas');
+const ictx = IC.getContext('2d');
+let CELL, IW, IH;
+
+function resizeIsing() {
+  const pw = IC.parentElement.getBoundingClientRect().width - 16;
+  IW = IC.width  = Math.min(Math.floor(pw - 10), 560);
+  IH = IC.height = IW;
+  CELL = IW / N;
+}
+window.addEventListener('resize', () => { resizeIsing(); });
+resizeIsing();
+
+IC.addEventListener('click', e => {
+  const rect = IC.getBoundingClientRect();
+  const x = Math.floor((e.clientX - rect.left) * (IW / rect.width) / CELL);
+  const y = Math.floor((e.clientY - rect.top)  * (IH / rect.height) / CELL);
+  if (x >= 0 && x < N && y >= 0 && y < N) {
+    grid[y][x] *= -1;
+    // At critical temperature, trigger local cascade
+    if (T > 0.35 && T < 0.65) {
+      cascadeFrom(x, y, 0.4 + T * 0.3);
+    }
+  }
+});
+
+function cascadeFrom(x, y, prob) {
+  const visited = new Set();
+  const queue = [[x, y]];
+  let count = 0;
+  while (queue.length && count < 200) {
+    const [cx, cy] = queue.shift();
+    const key = `${cx},${cy}`;
+    if (visited.has(key)) continue;
+    visited.add(key);
+    count++;
+    const neighbors = [[cx-1,cy],[cx+1,cy],[cx,cy-1],[cx,cy+1]];
+    neighbors.forEach(([nx, ny]) => {
+      if (nx >= 0 && nx < N && ny >= 0 && ny < N) {
+        const nkey = `${nx},${ny}`;
+        if (!visited.has(nkey) && Math.random() < prob * (1 - Math.abs(T - 0.5) * 2)) {
+          grid[ny][nx] = grid[cy][cx];
+          queue.push([nx, ny]);
+        }
+      }
+    });
+  }
+}
+
+// ── METROPOLIS ALGORITHM ─────────────────────────────────────────
+function mcStep() {
+  const steps = N * N;
+  for (let s = 0; s < steps; s++) {
+    const i = Math.floor(Math.random() * N);
+    const j = Math.floor(Math.random() * N);
+    const spin = grid[i][j];
+
+    // Energy with neighbors
+    const up    = grid[(i-1+N)%N][j];
+    const down  = grid[(i+1)%N][j];
+    const left  = grid[i][(j-1+N)%N];
+    const right = grid[i][(j+1)%N];
+    const dE = 2 * spin * (up + down + left + right);
+
+    // Values vector bias: positive spins favored by care orientation
+    const vBias = (V - 0.5) * 0.8 * ostromScore / 8;
+    const effectiveDE = dE - vBias * spin;
+
+    // Boltzmann acceptance
+    const kT = T < 0.01 ? 0.001 : T * 3.0;
+    if (effectiveDE <= 0 || Math.random() < Math.exp(-effectiveDE / kT)) {
+      grid[i][j] *= -1;
+    }
+  }
+}
+
+// ── MAGNETIZATION ────────────────────────────────────────────────
+function getMagnetization() {
+  let sum = 0;
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) sum += grid[i][j];
+  return sum / (N * N);
+}
+
+// ── DRAW ISING ───────────────────────────────────────────────────
+function drawIsing() {
+  ictx.clearRect(0, 0, IW, IH);
+  ictx.fillStyle = '#04050a';
+  ictx.fillRect(0, 0, IW, IH);
+
+  const critProx = 1 - Math.abs(T - 0.5) * 3.5;
+  const isCrit = T > 0.3 && T < 0.7;
+
+  for (let i = 0; i < N; i++) {
+    for (let j = 0; j < N; j++) {
+      const spin = grid[i][j];
+      const x = j * CELL, y = i * CELL;
+
+      let r, g, b, alpha = 0.85;
+
+      if (isCrit && Math.random() < critProx * 0.04) {
+        // Critical fluctuation — briefly show neither/nor state
+        r = 240; g = 232; b = 144;
+        alpha = critProx * 0.6;
+      } else if (spin > 0) {
+        // Care spin — blue-green
+        const intensity = 0.4 + 0.6 * V;
+        r = Math.round(80 * (1-V) + 20 * V);
+        g = Math.round(160 * intensity + ostromScore * 8);
+        b = Math.round(220 + ostromScore * 4);
+        alpha = 0.6 + intensity * 0.3;
+      } else {
+        // Extraction spin — amber-red
+        const intensity = 0.4 + 0.6 * (1-V);
+        r = Math.round(220 + ostromScore * 4);
+        g = Math.round(100 * intensity);
+        b = Math.round(50 * (1-V));
+        alpha = 0.55 + intensity * 0.3;
+      }
+
+      // Domain boundary detection
+      const right = grid[i][(j+1)%N];
+      const down  = grid[(i+1)%N][j];
+      const isDomain = (right !== spin || down !== spin);
+
+      ictx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+      const pad = isDomain && isCrit ? 0.5 : 0;
+      ictx.fillRect(x + pad, y + pad, CELL - pad*2, CELL - pad*2);
+
+      // Glow for care spins at critical temperature
+      if (spin > 0 && isCrit && critProx > 0.4 && Math.random() < 0.02) {
+        const grd = ictx.createRadialGradient(x+CELL/2, y+CELL/2, 0, x+CELL/2, y+CELL/2, CELL*2);
+        grd.addColorStop(0, `rgba(${r},${g},${b},${critProx * 0.25})`);
+        grd.addColorStop(1, 'transparent');
+        ictx.fillStyle = grd;
+        ictx.fillRect(x-CELL, y-CELL, CELL*3, CELL*3);
+      }
+    }
+  }
+
+  // Critical temperature overlay
+  if (isCrit && critProx > 0.5) {
+    ictx.font = '11px Cormorant Garamond';
+    ictx.fillStyle = `rgba(240,232,144,${(critProx-0.5)*0.8})`;
+    ictx.textAlign = 'center';
+    ictx.fillText('CRITICAL FIELD ACTIVE — AVALANCHE POSSIBLE', IW/2, IH - 10);
+  }
+}
+
+// ── ENTROPY WAVE ────────────────────────────────────────────────
+const EC  = document.getElementById('entCanvas');
+const ectx = EC.getContext('2d');
+const ENT_HIST = 240;
+let entHistory = new Array(ENT_HIST).fill(0.5);
+let entPtr = 0;
+
+function resizeEnt() { EC.width = EC.parentElement.getBoundingClientRect().width - 16 || 400; }
+window.addEventListener('resize', resizeEnt); resizeEnt();
+
+function updateEntropy(mag) {
+  // Entropy proxy: deviation from pure order
+  const p = (mag + 1) / 2;
+  const ent = p > 0 && p < 1 ? -p * Math.log2(p) - (1-p)*Math.log2(1-p) : 0;
+  entHistory[entPtr] = ent;
+  entPtr = (entPtr + 1) % ENT_HIST;
+}
+
+function drawEntropy() {
+  const EW = EC.width, EH = EC.height;
+  ectx.clearRect(0,0,EW,EH);
+  ectx.fillStyle = '#04050a'; ectx.fillRect(0,0,EW,EH);
+
+  // SOC zone band
+  ectx.fillStyle = 'rgba(96,200,144,0.06)';
+  ectx.fillRect(0, EH*0.25, EW, EH*0.5);
+  ectx.font = '6px Share Tech Mono'; ectx.textAlign = 'right';
+  ectx.fillStyle = 'rgba(96,200,144,0.3)';
+  ectx.fillText('SOC ZONE', EW-3, EH*0.28);
+
+  ectx.beginPath();
+  for (let i = 0; i < ENT_HIST; i++) {
+    const idx = (entPtr + i) % ENT_HIST;
+    const x = (i / (ENT_HIST-1)) * EW;
+    const y = EH - entHistory[idx] * EH * 0.9;
+    i === 0 ? ectx.moveTo(x,y) : ectx.lineTo(x,y);
+  }
+  const eg = ectx.createLinearGradient(0,0,EW,0);
+  eg.addColorStop(0, 'rgba(32,96,200,0.4)');
+  eg.addColorStop(0.5, 'rgba(240,232,144,0.7)');
+  eg.addColorStop(1, 'rgba(96,200,144,0.5)');
+  ectx.strokeStyle = eg; ectx.lineWidth = 1.5; ectx.stroke();
+
+  ectx.font = '6px Share Tech Mono'; ectx.textAlign = 'left';
+  ectx.fillStyle = 'rgba(90,104,120,0.6)';
+  ectx.fillText('ENTROPY / SOC WAVEFORM', 4, EH-4);
+}
+
+// ── OSTROM COMPASS ───────────────────────────────────────────────
+const OC   = document.getElementById('ostromCanvas');
+const octx = OC.getContext('2d');
+const OCX  = OC.width/2, OCY = OC.height/2, OCR = 72;
+
+function updateOstromCanvas() {
+  octx.clearRect(0,0,OC.width,OC.height);
+  octx.fillStyle = '#04050a'; octx.fillRect(0,0,OC.width,OC.height);
+
+  ostromScore = ostromActive.filter(Boolean).length;
+
+  // Background rings
+  [0.33, 0.66, 1].forEach(r => {
+    octx.beginPath(); octx.arc(OCX,OCY,OCR*r,0,Math.PI*2);
+    octx.strokeStyle = 'rgba(30,37,53,0.8)'; octx.lineWidth=1; octx.stroke();
+  });
+
+  // Draw 8 axes
+  OSTROM.forEach((p, i) => {
+    const ang = (i/8)*Math.PI*2 - Math.PI/2;
+    const ex = OCX + Math.cos(ang)*OCR;
+    const ey = OCY + Math.sin(ang)*OCR;
+    octx.beginPath(); octx.moveTo(OCX,OCY); octx.lineTo(ex,ey);
+    octx.strokeStyle = ostromActive[i] ? 'rgba(136,212,168,0.4)' : 'rgba(30,37,53,0.6)';
+    octx.lineWidth = ostromActive[i] ? 1.5 : 0.5; octx.stroke();
+
+    // Dot at end
+    octx.beginPath(); octx.arc(ex,ey,3,0,Math.PI*2);
+    octx.fillStyle = ostromActive[i] ? 'rgba(136,212,168,0.9)' : 'rgba(42,50,64,0.8)';
+    octx.fill();
+
+    // Label
+    const lx = OCX + Math.cos(ang)*(OCR+14);
+    const ly = OCY + Math.sin(ang)*(OCR+14);
+    octx.font = '5.5px Share Tech Mono'; octx.textAlign='center';
+    octx.fillStyle = ostromActive[i] ? 'rgba(136,212,168,0.8)' : 'rgba(42,50,64,0.6)';
+    octx.fillText(i+1, lx, ly+2);
+  });
+
+  // Values vector — polygon of active principles
+  const activeIdx = ostromActive.map((a,i) => a ? i : -1).filter(i => i >= 0);
+  if (activeIdx.length > 0) {
+    octx.beginPath();
+    activeIdx.forEach((i, idx) => {
+      const ang = (i/8)*Math.PI*2 - Math.PI/2;
+      const rx = OCX + Math.cos(ang)*OCR*0.88;
+      const ry = OCY + Math.sin(ang)*OCR*0.88;
+      idx === 0 ? octx.moveTo(rx,ry) : octx.lineTo(rx,ry);
+    });
+    octx.closePath();
+    octx.fillStyle = 'rgba(136,212,168,0.1)';
+    octx.strokeStyle = 'rgba(136,212,168,0.6)';
+    octx.lineWidth = 1.5; octx.fill(); octx.stroke();
+  }
+
+  // Values vector arrow (centroid of active)
+  if (activeIdx.length > 0) {
+    let vx = 0, vy = 0;
+    activeIdx.forEach(i => {
+      const ang = (i/8)*Math.PI*2 - Math.PI/2;
+      vx += Math.cos(ang); vy += Math.sin(ang);
+    });
+    vx /= activeIdx.length; vy /= activeIdx.length;
+    const vmag = Math.hypot(vx,vy);
+    if (vmag > 0.01) {
+      const ax = OCX + (vx/vmag)*OCR*0.6;
+      const ay = OCY + (vy/vmag)*OCR*0.6;
+      octx.beginPath(); octx.moveTo(OCX,OCY); octx.lineTo(ax,ay);
+      octx.strokeStyle = 'rgba(240,232,144,0.9)'; octx.lineWidth=2; octx.stroke();
+      octx.beginPath(); octx.arc(ax,ay,4,0,Math.PI*2);
+      octx.fillStyle = 'rgba(240,232,144,0.9)'; octx.fill();
+    }
+  }
+
+  // Center
+  octx.beginPath(); octx.arc(OCX,OCY,4,0,Math.PI*2);
+  octx.fillStyle = 'rgba(136,212,168,0.5)'; octx.fill();
+}
+updateOstromCanvas();
+
+// ── UI UPDATES ───────────────────────────────────────────────────
+function updateUI(mag) {
+  const isCrit = T > 0.3 && T < 0.7;
+  const isHot  = T > 0.65;
+  const isCold = T < 0.35;
+
+  // Phase badge
+  const badge = document.getElementById('phaseBadge');
+  if (isCold) {
+    badge.textContent = '❄ FROZEN ORDER'; badge.style.color = 'var(--cold)'; badge.style.borderColor = 'var(--cold)';
+  } else if (isCrit) {
+    const critProx = 1 - Math.abs(T-0.5)*3;
+    badge.textContent = critProx > 0.7 ? '❋ CRITICAL FIELD' : '◈ APPROACHING CRITICAL';
+    badge.style.color = 'var(--crit)'; badge.style.borderColor = 'var(--crit)';
+  } else {
+    badge.textContent = '🔥 CHAOTIC DISORDER'; badge.style.color = 'var(--hot)'; badge.style.borderColor = 'var(--hot)';
+  }
+
+  // Readouts
+  const phaseEl = document.getElementById('rbPhase');
+  phaseEl.textContent = isCold ? 'FROZEN' : isCrit ? 'CRITICAL' : 'CHAOTIC';
+  phaseEl.style.color = isCold ? 'var(--cold)' : isCrit ? 'var(--crit)' : 'var(--hot)';
+
+  document.getElementById('rbMag').textContent = mag.toFixed(3) > 0 ? `+${mag.toFixed(3)}` : mag.toFixed(3);
+  document.getElementById('rbMag').style.color = mag > 0.1 ? 'var(--spin-up)' : mag < -0.1 ? 'var(--spin-down)' : 'var(--spin-crit)';
+
+  const domSize = isCold ? 'MONOLITHIC' : isCrit ? (Math.abs(mag) < 0.3 ? 'ALL SCALES' : 'MIXED') : 'FRAGMENTED';
+  document.getElementById('rbDomain').textContent = domSize;
+
+  const cascadeRisk = isCrit ? (ostromScore > 3 ? 'HIGH' : 'MODERATE') : 'MINIMAL';
+  const cascadeEl = document.getElementById('rbCascade');
+  cascadeEl.textContent = cascadeRisk;
+  cascadeEl.style.color = isCrit ? (ostromScore > 3 ? 'var(--crit)' : 'var(--spin-crit)') : 'var(--txt-dim)';
+
+  document.getElementById('rbOstrom').textContent = `${ostromScore} / 8`;
+
+  // Magnetization bar
+  const pct = (mag + 1) / 2 * 100;
+  const fill = document.getElementById('magFill');
+  if (mag >= 0) {
+    fill.style.left  = '50%';
+    fill.style.width = `${(mag)*50}%`;
+    fill.style.background = `rgba(120,212,248,${0.4 + mag*0.5})`;
+  } else {
+    fill.style.left  = `${50+mag*50}%`;
+    fill.style.width = `${(-mag)*50}%`;
+    fill.style.background = `rgba(248,120,80,${0.4 + (-mag)*0.5})`;
+  }
+
+  // State/Trait/Field highlighting
+  document.getElementById('stfState').classList.toggle('active', true); // always
+  document.getElementById('stfTrait').classList.toggle('active', isCold || Math.abs(mag) > 0.4);
+  document.getElementById('stfField').classList.toggle('active', isCrit);
+
+  // Question evolution
+  const qbox = document.getElementById('qbox');
+  if (isCold && Math.abs(mag) > 0.7) {
+    qbox.style.borderColor = 'rgba(32,96,200,0.3)';
+    qbox.style.color = 'rgba(100,140,200,0.6)';
+    qbox.textContent = 'Frozen order. All spins aligned. The system is coherent but brittle — one value, no diversity, no transformation possible. Does this resemble any information environment you know?';
+  } else if (isCrit && ostromScore > 3) {
+    qbox.style.borderColor = 'rgba(96,200,144,0.5)';
+    qbox.style.color = 'rgba(160,220,180,0.85)';
+    qbox.textContent = 'Critical field active. Domains of all sizes coexist. A single flip can cascade. This is the kindness field functioning — not warm uniformity but productive diversity held in care. Click a cell. Watch what happens.';
+  } else if (isHot) {
+    qbox.style.borderColor = 'rgba(200,64,64,0.3)';
+    qbox.style.color = 'rgba(200,140,100,0.6)';
+    qbox.textContent = 'Chaotic disorder. Spins flip randomly. No coherent pattern survives. High information noise — trauma without regulation. What does this feel like in a learning environment?';
+  } else if (isCrit) {
+    qbox.style.borderColor = 'rgba(240,232,144,0.3)';
+    qbox.style.color = 'rgba(220,208,120,0.7)';
+    qbox.textContent = 'Approaching the critical temperature. Activate Ostrom principles to strengthen the values vector — watch the care-oriented domains stabilize without freezing the system.';
+  } else {
+    qbox.style.borderColor = 'rgba(30,37,53,0.6)';
+    qbox.style.color = 'var(--txt-dim)';
+    qbox.textContent = 'Adjust the field temperature. Watch the domains. Then ask: what is the temperature of the information environment you spend most of your time in?';
+  }
+}
+
+// ── BUTTON ACTIONS ───────────────────────────────────────────────
+function randomize() { initGrid(true); }
+
+function triggerAvalanche() {
+  if (T < 0.25 || T > 0.75) {
+    // Flash red/blue to indicate wrong temperature
+    IC.style.outline = T < 0.25 ? '2px solid var(--cold)' : '2px solid var(--hot)';
+    setTimeout(() => IC.style.outline = 'none', 600);
+    return;
+  }
+  // Seed from center
+  const ci = Math.floor(N/2), cj = Math.floor(N/2);
+  grid[ci][cj] = V > 0.5 ? 1 : -1;
+  cascadeFrom(cj, ci, 0.7 + ostromScore * 0.03);
+}
+
+function freezeSystem() {
+  document.getElementById('sT').value = 5;
+  T = 0.05;
+  document.getElementById('vT').textContent = 'COLD';
+  // Align all spins
+  const dominant = V > 0.5 ? 1 : -1;
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) grid[i][j] = dominant;
+}
+
+// ── CONTROLS ─────────────────────────────────────────────────────
+document.getElementById('sT').addEventListener('input', function() {
+  T = this.value / 100;
+  const tLabel = T < 0.3 ? 'COLD' : T < 0.45 ? 'COOLING' : T > 0.7 ? 'HOT' : T > 0.55 ? 'WARMING' : 'CRITICAL';
+  document.getElementById('vT').textContent = tLabel;
+  document.getElementById('vT').style.color = T < 0.3 ? 'var(--cold)' : T > 0.7 ? 'var(--hot)' : 'var(--crit)';
+});
+
+document.getElementById('sV').addEventListener('input', function() {
+  V = this.value / 100;
+  const vLabel = V > 0.7 ? 'CARE' : V < 0.3 ? 'EXTRACT' : 'MIXED';
+  document.getElementById('vV').textContent = vLabel;
+  document.getElementById('vV').style.color = V > 0.6 ? 'var(--spin-up)' : V < 0.4 ? 'var(--spin-down)' : 'var(--spin-crit)';
+});
+
+document.getElementById('sS').addEventListener('input', function() {
+  const target = parseInt(this.value);
+  document.getElementById('vS').textContent = target;
+  // Sync toggles to match count
+  let count = ostromActive.filter(Boolean).length;
+  while (count < target) {
+    const off = ostromActive.findIndex(a => !a);
+    if (off < 0) break;
+    ostromActive[off] = true;
+    document.getElementById(`pb${off}`).classList.add('on');
+    count++;
+  }
+  while (count > target) {
+    const on = ostromActive.findLastIndex(a => a);
+    if (on < 0) break;
+    ostromActive[on] = false;
+    document.getElementById(`pb${on}`).classList.remove('on');
+    count--;
+  }
+  ostromScore = target;
+  updateOstromCanvas();
+});
+
+// ── MAIN LOOP ────────────────────────────────────────────────────
+let frame = 0;
+function loop() {
+  frame++;
+
+  // MC steps — more at higher temperature
+  const steps = Math.max(1, Math.round(1 + T * 4));
+  for (let s = 0; s < steps; s++) mcStep();
+
+  drawIsing();
+
+  const mag = getMagnetization();
+  if (frame % 3 === 0) {
+    updateEntropy(mag);
+    drawEntropy();
+    updateUI(mag);
+  }
+
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>
