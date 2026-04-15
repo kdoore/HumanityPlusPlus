@@ -437,7 +437,7 @@ function curl(x, y, t, epi) {
 //  MPCM BOUNDARY  — horizontal midline
 //  CP above (upper screen), GP below (lower screen)
 // ═══════════════════════════════════════════════
-function mpcmY(p) { return H * (0.50 + (1 - p.s) * 0.07); }
+function mpcmY(p) { return H * (0.50 - (1 - p.s) * 0.07); }
 
 // ═══════════════════════════════════════════════
 //  AGENTS
@@ -551,16 +551,18 @@ function step(ag, p, stress, t, dt) {
   const {fx:gpx,fy:gpy} = grav(ag.x, ag.y, GP.x, GP.y, gpStr);
   const {fx:cpx,fy:cpy} = grav(ag.x, ag.y, CP.x, CP.y, cpStr);
 
-  // MPCM boundary — CP above line, GP below
+  // MPCM boundary — CP above line (low y), GP below line (high y)
+  // High somatic moves boundary UP (lower y value), expanding kindness basin
   const my = mpcmY(p);
   let mpcmFy = 0;
   if (ag.ki < 0.3) {
-    // extraction: resist crossing upward through boundary
-    const dist = my - ag.y;
+    // extraction: repel from crossing upward through boundary
+    // dist positive = agent is below boundary (GP side) — push back down (positive fy)
+    const dist = ag.y - my;
     if (dist > -30 && dist < 60)
       mpcmFy = 0.45 * Math.exp(-dist*dist/800);
-  } else if (ag.ki > 0.7 && ag.y < my) {
-    // kindness above boundary: extra CP pull
+  } else if (ag.ki > 0.7 && ag.y > my) {
+    // kindness below boundary (GP side): extra upward pull toward CP
     const {fy:eCpy} = grav(ag.x, ag.y, CP.x, CP.y, 0.28*kf);
     mpcmFy = eCpy;
   }
