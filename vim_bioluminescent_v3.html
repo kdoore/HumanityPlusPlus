@@ -84,6 +84,7 @@
   button.demo-btn.active { background: rgba(29,120,158,0.18); border-color: #2aabcc; color: #9FD8E8; }
   button.mic-btn { border-color: #3a5a8a; color: #4a7aaa; }
   button.mic-btn.active { background: rgba(50,100,200,0.15); border-color: #5a9acc; color: #8ab8ee; }
+  button.demo-active { background: rgba(29,158,117,0.22); border-color: #1D9E75; color: #aaeedd; }
 
   .speed-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .speed-label { font-family: 'Space Mono', monospace; font-size: 8px; color: #1e3e2e; letter-spacing: 0.1em; text-transform: uppercase; }
@@ -214,8 +215,8 @@
 
   <div class="speed-row">
     <span class="speed-label">speed</span>
-    <input type="range" id="sl-speed" min="1" max="10" value="5" style="width:80px">
-    <span class="sl-val" id="v-speed">5</span>
+    <input type="range" id="sl-speed" min="1" max="6" value="2" style="width:80px">
+    <span class="sl-val" id="v-speed">2</span>
     <span class="speed-label" style="margin-left:14px">murmuration</span>
     <input type="range" id="sl-flock" min="0" max="100" value="40" style="width:80px">
     <span class="sl-val" id="v-flock">40</span>
@@ -342,7 +343,7 @@ function updateMic() {
 //  Incoherent noise when stress high
 // ═══════════════════════════════════════════════
 let resCanvas, resCtx;
-const RES_SCALE = 5;
+const RES_SCALE = 3;
 
 function buildResCanvas() {
   resCanvas = document.createElement('canvas');
@@ -358,7 +359,6 @@ function drawResonanceField(coherence, stress, t) {
   const imgData = resCtx.createImageData(rW, rH);
   const d = imgData.data;
 
-  // wave sources — more & tighter when coherent
   const nSrc = 3 + Math.floor(coherence * 6);
   const sources = [];
   for (let i = 0; i < nSrc; i++) {
@@ -383,20 +383,17 @@ function drawResonanceField(coherence, stress, t) {
       }
       wave /= nSrc;
 
-      // noise injection scales with stress
       const noise = stress * (Math.random() * 2 - 1) * 0.8;
       wave = wave * (1 - stress * 0.6) + noise;
       const n = (wave + 1) * 0.5;
 
       const idx = (py * rW + px) * 4;
       if (coherence > stress * 0.5) {
-        // coherent: blue-teal-cyan iridescence
         d[idx]   = Math.round(n * 18  + coherence * 12);
         d[idx+1] = Math.round(n * 60  + coherence * 90);
         d[idx+2] = Math.round(n * 130 + coherence * 110);
         d[idx+3] = Math.round(coherence * 60 * (0.35 + n * 0.65));
       } else {
-        // stressed: amber-red fragmentation
         d[idx]   = Math.round(n * 100 + stress * 60);
         d[idx+1] = Math.round(n * 22  + stress * 8);
         d[idx+2] = Math.round(n * 8);
@@ -407,7 +404,8 @@ function drawResonanceField(coherence, stress, t) {
   resCtx.putImageData(imgData, 0, 0);
 
   ctx.save();
-  ctx.globalAlpha = 0.50 + coherence * 0.25;
+  const effCoherence = Math.max(0, coherence - stress * 0.4);
+  ctx.globalAlpha = 0.20 + effCoherence * 0.55;
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(resCanvas, 0, 0, W, H);
@@ -581,14 +579,14 @@ function step(ag, p, stress, t, dt) {
   ag.vy = ag.vy*0.940 + ay*dt*0.018*S;
 
   const v    = Math.sqrt(ag.vx*ag.vx+ag.vy*ag.vy);
-  const maxV = (0.6+cc*0.8+stress*1.4)*S*0.5;
+  const maxV = (0.6+cc*0.8)*S*0.5;
   if (v>maxV) { ag.vx*=maxV/v; ag.vy*=maxV/v; }
 
   ag.cc    += (cc-ag.cc)*0.005;
   ag.phase += ag.pspd*S*0.5;
 
   ag.trail.push({x:ag.x, y:ag.y, ki:ag.ki, cc:ag.cc});
-  const maxTr = Math.floor(30 + ag.cc*65*(1-stress*0.65));
+  const maxTr = Math.floor((18 + ag.cc*35*(1-stress*0.65)) / (1 + S * 0.15));
   if (ag.trail.length > maxTr) ag.trail.shift();
 
   ag.x += ag.vx; ag.y += ag.vy;
@@ -623,15 +621,16 @@ function drawFish(ag) {
   const v     = Math.sqrt(ag.vx*ag.vx+ag.vy*ag.vy);
   const angle = v>0.003 ? Math.atan2(ag.vy,ag.vx) : ag.phase*0.05;
   const pulse = 0.88+0.12*Math.sin(ag.phase);
-  const sz    = ag.sz*pulse*(0.5+ag.cc*0.8);
-  const glow  = sz*(1.8+ag.ki*0.8+ag.cc*1.0);
+  const visCC = Math.max(ag.cc, 0.35);  // visibility floor
+  const sz    = ag.sz*pulse*(0.5+visCC*0.8);
+  const glow  = sz*(1.8+ag.ki*0.8+visCC*1.0);
   const c     = rgb(ag.ki,ag.cc);
 
   ctx.save(); ctx.translate(ag.x,ag.y); ctx.rotate(angle);
 
   const ga=ctx.createRadialGradient(0,0,0,0,0,glow);
-  ga.addColorStop(0,`rgba(${c},${0.55*ag.cc*ag.ki*0.6+0.1})`);
-  ga.addColorStop(0.4,`rgba(${c},${0.15*ag.cc})`);
+  ga.addColorStop(0,`rgba(${c},${0.55*visCC*ag.ki*0.6+0.15})`);
+  ga.addColorStop(0.4,`rgba(${c},${0.15*visCC})`);
   ga.addColorStop(1,`rgba(${c},0)`);
   ctx.beginPath(); ctx.arc(0,0,glow,0,Math.PI*2); ctx.fillStyle=ga; ctx.fill();
 
@@ -639,7 +638,7 @@ function drawFish(ag) {
   ctx.moveTo(sz*1.7,0);
   ctx.bezierCurveTo(sz*0.5,-sz*0.42,-sz*0.6,-sz*0.30,-sz*1.0,0);
   ctx.bezierCurveTo(-sz*0.6,sz*0.30,sz*0.5,sz*0.42,sz*1.7,0);
-  ctx.fillStyle=`rgba(${c},${0.70+ag.cc*0.30})`; ctx.fill();
+  ctx.fillStyle=`rgba(${c},${0.55+visCC*0.45})`; ctx.fill();
 
   ctx.beginPath();
   ctx.moveTo(sz*0.2,-sz*0.30);
@@ -703,21 +702,39 @@ function drawMPCM(p, kf) {
 }
 
 // ═══════════════════════════════════════════════
-//  DRAW FLOW HINTS
+//  DEMO STATE OVERLAY — small label top of screen
 // ═══════════════════════════════════════════════
-function drawFlow(p,t) {
-  const cols=20,rows=12,cw=W/cols,ch=H/rows;
-  ctx.save(); ctx.globalAlpha=0.06+p.e*0.07;
-  for (let r=0;r<rows;r++) for (let c=0;c<cols;c++) {
-    const x=(c+0.5)*cw, y=(r+0.5)*ch;
-    const {fx,fy}=curl(x,y,t,p.e);
-    const len=Math.sqrt(fx*fx+fy*fy);
-    if (len<0.001) continue;
-    const nx=fx/len,ny=fy/len,s=5+p.e*5;
-    ctx.beginPath();
-    ctx.moveTo(x-nx*s*0.5,y-ny*s*0.5); ctx.lineTo(x+nx*s*0.5,y+ny*s*0.5);
-    ctx.strokeStyle='rgba(15,90,55,1)'; ctx.lineWidth=0.35; ctx.stroke();
+let overlayText = '';
+let overlayAlpha = 0;
+let lastDemoLabel = '';
+
+function setOverlayText(text) {
+  if (text !== overlayText) {
+    overlayText = text;
+    overlayAlpha = 1.0;
+    // highlight matching preset button if state name matches
+    document.querySelectorAll('button').forEach(b => b.classList.remove('demo-active'));
+    const map = {
+      'S0':'frozen','S1':'crack','S2':'vacant','S3':'flow','S4':'reversion','S5':'trauma'
+    };
+    for (const [k,v] of Object.entries(map)) {
+      if (text.includes(k)) {
+        const btn = document.querySelector(`button[onclick*="${v}"]`);
+        if (btn) btn.classList.add('demo-active');
+      }
+    }
   }
+}
+
+function drawDemoOverlay() {
+  if (!demoActive || overlayAlpha <= 0 || !overlayText) return;
+  overlayAlpha = Math.max(0, overlayAlpha - 0.006);
+  ctx.save();
+  ctx.globalAlpha = overlayAlpha * 0.70;
+  ctx.font = `italic ${Math.floor(H * 0.022)}px Cormorant Garamond, Georgia, serif`;
+  ctx.fillStyle = 'rgba(100,210,160,1)';
+  ctx.textAlign = 'center';
+  ctx.fillText(overlayText, W * 0.5, H * 0.07);
   ctx.restore();
 }
 
@@ -737,7 +754,7 @@ const DEMO_SCRIPT = [
 ];
 
 function demoFrame(dt) {
-  demoT += dt*0.001*Math.max(2,spd()*0.6);
+  demoT += dt*0.001*Math.max(1.5,spd()*0.5);
   let seg=DEMO_SCRIPT[DEMO_SCRIPT.length-1];
   for (const s of DEMO_SCRIPT) { if (demoT>=s[0] && demoT<s[1]) {seg=s;break;} }
   const [start,end,targets,label]=seg;
@@ -751,6 +768,7 @@ function demoFrame(dt) {
   });
   const dl=document.getElementById('demo-label');
   dl.textContent=label; dl.style.opacity='1';
+  setOverlayText(label);
   if (demoT>DEMO_SCRIPT[DEMO_SCRIPT.length-1][1]) stopDemo();
 }
 
@@ -763,10 +781,12 @@ function toggleDemo(btn) {
 }
 function stopDemo() {
   demoActive=false;
+  overlayAlpha=0; overlayText='';
   const btn=document.getElementById('btn-demo');
   btn.textContent='▶ watch the cascade'; btn.classList.remove('active');
   document.getElementById('demo-label').style.opacity='0';
   document.getElementById('cascade-bar-wrap').style.opacity='0';
+  document.querySelectorAll('button').forEach(b=>b.classList.remove('demo-active'));
 }
 
 // ═══════════════════════════════════════════════
@@ -816,14 +836,13 @@ function computeState(p,stress) {
 // ═══════════════════════════════════════════════
 //  MAIN LOOP
 // ═══════════════════════════════════════════════
-let simT=0,flowT=0,lastTS=null;
+let simT=0,lastTS=null;
 
 function frame(ts) {
   if (!lastTS) lastTS=ts;
   const dt=Math.min(ts-lastTS,50); lastTS=ts;
   const S=spd();
   simT  += dt*0.001*S*0.5;
-  flowT += dt*0.0003*S*0.4;
 
   if (demoActive) demoFrame(dt);
   updateMic();
@@ -849,10 +868,9 @@ function frame(ts) {
   document.getElementById('resonance-fill').style.width = Math.round(coherence*100)+'%';
 
   // ── RENDER ──────────────────────────────────
-  ctx.fillStyle='rgba(0,6,16,0.030)'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=`rgba(0,6,16,${0.030 + S * 0.022})`; ctx.fillRect(0,0,W,H);
 
   drawResonanceField(coherence, stress, simT);
-  drawFlow(p, flowT);
 
   const gpMass=(0.35+(1-kf)*0.85)*(1+stress*0.7);
   const cpMass= 0.22+kf*0.95*(1-stress*0.3);
@@ -866,6 +884,7 @@ function frame(ts) {
 
   agents.forEach(ag=>drawTrail(ag));
   agents.forEach(ag=>{ step(ag,p,stress,simT,dt); drawFish(ag); });
+  drawDemoOverlay();
 
   requestAnimationFrame(frame);
 }
