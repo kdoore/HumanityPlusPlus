@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIM · Resonant Field · v3 · Humanity++</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Space+Mono:wght@400&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #000610;
+    color: #5a9a82;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  #sim { display: block; width: 100%; flex: 1; min-height: 0; cursor: crosshair; }
+
+  #ui {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 9px 18px 12px;
+    background: linear-gradient(to top, rgba(0,6,16,0.97) 65%, transparent);
+    display: flex; flex-direction: column; gap: 5px;
+  }
+  .state-row {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    font-family: 'Space Mono', monospace; font-size: 9px;
+    color: #1e3e2e; letter-spacing: 0.1em;
+  }
+  .state-val   { color: #5a9a82; min-width: 30px; }
+  .state-label { color: #1e3e2e; font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; }
+  #state-display {
+    font-family: 'Cormorant Garamond', serif; font-style: italic;
+    font-size: 12px; color: #2a6a4a; letter-spacing: 0.05em;
+    flex: 1; text-align: right;
+  }
+  #demo-label {
+    font-family: 'Cormorant Garamond', serif; font-style: italic;
+    font-size: 11px; color: #1a7a8a; letter-spacing: 0.06em;
+    min-width: 200px; text-align: center; opacity: 0; transition: opacity 0.8s;
+  }
+  .sliders { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 22px; }
+  .sl-row  { display: flex; align-items: center; gap: 7px; }
+  .sl-label {
+    font-family: 'Cormorant Garamond', serif; font-style: italic;
+    font-size: 12px; color: #3a7a62; min-width: 152px;
+    letter-spacing: 0.02em; white-space: nowrap;
+  }
+  .sl-label span { font-style: normal; font-size: 10px; margin-right: 3px; }
+  input[type=range] {
+    flex: 1; height: 1px; -webkit-appearance: none;
+    background: linear-gradient(to right, #081e14, #1D9E75);
+    border-radius: 1px; cursor: pointer; outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 9px; height: 9px;
+    border-radius: 50%; background: #5a9a82; border: none;
+    box-shadow: 0 0 5px rgba(29,158,117,0.7);
+  }
+  .sl-val { font-family: 'Space Mono', monospace; font-size: 8px; color: #2a5a42; min-width: 22px; text-align: right; }
+
+  .sl-row.bio .sl-label { color: #5a7aaa; }
+  .sl-row.bio input[type=range] { background: linear-gradient(to right, #081428, #3a7acc); }
+  .sl-row.bio input[type=range]::-webkit-slider-thumb { background: #6a9acc; box-shadow: 0 0 5px rgba(100,150,220,0.7); }
+  .sl-row.bio .sl-val { color: #3a6a9a; }
+
+  .btn-section { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+  .btn-divider { width: 1px; height: 14px; background: #0f2e1e; margin: 0 2px; }
+  button {
+    font-family: 'Space Mono', monospace; font-size: 8px;
+    padding: 3px 9px; border-radius: 20px; letter-spacing: 0.08em;
+    border: 0.5px solid #0f2e1e; background: transparent; color: #2a5a42;
+    cursor: pointer; transition: all 0.3s;
+  }
+  button:hover  { color: #5a9a82; border-color: #2a7a52; background: rgba(29,158,117,0.06); }
+  button.active { background: rgba(29,158,117,0.14); border-color: #1D9E75; color: #8FD1B3; }
+  button.demo-btn {
+    border-color: #1a5a8a; color: #3a8aaa; font-style: italic;
+    letter-spacing: 0.05em; font-size: 9px; padding: 4px 12px;
+  }
+  button.demo-btn:hover  { color: #7abccc; border-color: #2a8aaa; background: rgba(29,120,158,0.08); }
+  button.demo-btn.active { background: rgba(29,120,158,0.18); border-color: #2aabcc; color: #9FD8E8; }
+  button.mic-btn { border-color: #3a5a8a; color: #4a7aaa; }
+  button.mic-btn.active { background: rgba(50,100,200,0.15); border-color: #5a9acc; color: #8ab8ee; }
+
+  .speed-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .speed-label { font-family: 'Space Mono', monospace; font-size: 8px; color: #1e3e2e; letter-spacing: 0.1em; text-transform: uppercase; }
+
+  .title-overlay {
+    position: absolute; top: 12px; left: 16px;
+    font-family: 'Cormorant Garamond', serif; font-weight: 300;
+    font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: rgba(58,122,98,0.28); pointer-events: none;
+  }
+  .version-tag {
+    position: absolute; top: 27px; left: 16px;
+    font-family: 'Space Mono', monospace; font-size: 7px;
+    color: rgba(40,80,60,0.22); letter-spacing: 0.14em; pointer-events: none;
+  }
+  .legend {
+    position: absolute; top: 12px; right: 16px;
+    font-family: 'Space Mono', monospace; font-size: 8px;
+    color: rgba(42,90,66,0.38); letter-spacing: 0.08em;
+    line-height: 2.0; text-align: right; pointer-events: none;
+  }
+  .legend span { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+
+  #cascade-bar-wrap {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    pointer-events: none; opacity: 0; transition: opacity 0.6s;
+  }
+  #cascade-label { font-family: 'Space Mono', monospace; font-size: 8px; color: rgba(29,158,117,0.45); letter-spacing: 0.12em; }
+  #cascade-bar   { width: 120px; height: 2px; background: rgba(29,158,117,0.12); border-radius: 2px; overflow: hidden; }
+  #cascade-fill  { height: 100%; width: 0%; background: #1D9E75; border-radius: 2px; transition: width 0.4s; }
+
+  #resonance-wrap {
+    position: absolute; top: 38px; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    pointer-events: none;
+  }
+  #resonance-label { font-family: 'Space Mono', monospace; font-size: 7px; color: rgba(80,130,200,0.32); letter-spacing: 0.12em; text-transform: uppercase; }
+  #resonance-bar   { width: 90px; height: 1px; background: rgba(80,130,200,0.10); border-radius: 1px; overflow: hidden; }
+  #resonance-fill  { height: 100%; width: 0%; background: linear-gradient(to right, #3a7acc, #8adde8); border-radius: 1px; transition: width 0.5s; }
+</style>
+</head>
+<body>
+
+<canvas id="sim"></canvas>
+
+<div class="title-overlay">VIM · Resonant Field · Humanity++</div>
+<div class="version-tag">v3 · resonance field · murmuration · 2026</div>
+
+<div class="legend">
+  <div><span style="background:#c04010"></span> extraction</div>
+  <div><span style="background:#1D9E75"></span> kindness</div>
+  <div><span style="background:#4a7a6a"></span> neutral</div>
+  <div><span style="background:#6a9acc"></span> resonance</div>
+</div>
+
+<div id="cascade-bar-wrap">
+  <div id="cascade-label">kindness cascade</div>
+  <div id="cascade-bar"><div id="cascade-fill"></div></div>
+</div>
+<div id="resonance-wrap">
+  <div id="resonance-label">field coherence</div>
+  <div id="resonance-bar"><div id="resonance-fill"></div></div>
+</div>
+
+<div id="ui">
+  <div class="state-row">
+    <span class="state-label">cc</span>
+    <span class="state-val" id="s-cc">0.50</span>
+    <span class="state-label">kf</span>
+    <span class="state-val" id="s-kf">0.50</span>
+    <span class="state-label">resonance</span>
+    <span class="state-val" id="s-res">0.50</span>
+    <span class="state-label">stress</span>
+    <span class="state-val" id="s-stress" style="color:#b06030">0.20</span>
+    <span class="state-label">state</span>
+    <span class="state-val" id="s-at">S1</span>
+    <div id="demo-label"></div>
+    <div id="state-display">holarchic drift</div>
+  </div>
+
+  <div class="sliders">
+    <div class="sl-row">
+      <span class="sl-label"><span>♠</span> somatic coherence</span>
+      <input type="range" id="sl-somatic"    min="0" max="100" value="50">
+      <span class="sl-val" id="v-somatic">50</span>
+    </div>
+    <div class="sl-row">
+      <span class="sl-label"><span>♦</span> epistemic aperture</span>
+      <input type="range" id="sl-epistemic"  min="0" max="100" value="50">
+      <span class="sl-val" id="v-epistemic">50</span>
+    </div>
+    <div class="sl-row">
+      <span class="sl-label"><span>♥</span> relational trust</span>
+      <input type="range" id="sl-relational" min="0" max="100" value="50">
+      <span class="sl-val" id="v-relational">50</span>
+    </div>
+    <div class="sl-row">
+      <span class="sl-label"><span>♣</span> temporal depth</span>
+      <input type="range" id="sl-temporal"   min="0" max="100" value="50">
+      <span class="sl-val" id="v-temporal">50</span>
+    </div>
+    <div class="sl-row bio">
+      <span class="sl-label"><span>◈</span> ambient field stress</span>
+      <input type="range" id="sl-stress"     min="0" max="100" value="20">
+      <span class="sl-val" id="v-stress">20</span>
+    </div>
+    <div class="sl-row bio">
+      <span class="sl-label"><span>◎</span> resonance coherence</span>
+      <input type="range" id="sl-resonance"  min="0" max="100" value="40">
+      <span class="sl-val" id="v-resonance">40</span>
+    </div>
+  </div>
+
+  <div class="btn-section">
+    <button onclick="applyPreset('trauma',this)">S5 — dissolution</button>
+    <button onclick="applyPreset('frozen',this)">S0 — frozen order</button>
+    <button onclick="applyPreset('crack',this)">S1 — the crack</button>
+    <button onclick="applyPreset('vacant',this)">S2 — vacant place</button>
+    <button onclick="applyPreset('flow',this)">S3 — holarchic flow</button>
+    <button onclick="applyPreset('reversion',this)">S4 — reversion</button>
+    <div class="btn-divider"></div>
+    <button class="demo-btn" id="btn-demo" onclick="toggleDemo(this)">▶ watch the cascade</button>
+    <button onclick="applyPreset('reset',this)">reset</button>
+    <div class="btn-divider"></div>
+    <button class="mic-btn" id="btn-mic" onclick="toggleMic(this)">☽ enable mic</button>
+  </div>
+
+  <div class="speed-row">
+    <span class="speed-label">speed</span>
+    <input type="range" id="sl-speed" min="1" max="10" value="5" style="width:80px">
+    <span class="sl-val" id="v-speed">5</span>
+    <span class="speed-label" style="margin-left:14px">murmuration</span>
+    <input type="range" id="sl-flock" min="0" max="100" value="40" style="width:80px">
+    <span class="sl-val" id="v-flock">40</span>
+    <span class="speed-label" style="margin-left:14px; color:rgba(80,130,200,0.4)">◈ biofeedback: use ambient stress slider · or enable mic above</span>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  CANVAS
+// ═══════════════════════════════════════════════
+const canvas = document.getElementById('sim');
+const ctx    = canvas.getContext('2d');
+let W, H;
+
+function resize() {
+  const uiH = document.getElementById('ui').offsetHeight;
+  W = window.innerWidth;
+  H = window.innerHeight - uiH;
+  canvas.width  = W * devicePixelRatio;
+  canvas.height = H * devicePixelRatio;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  placeAttractors();
+  buildResCanvas();
+}
+window.addEventListener('resize', resize);
+
+// ═══════════════════════════════════════════════
+//  SLIDERS
+// ═══════════════════════════════════════════════
+const SL = {
+  somatic:    document.getElementById('sl-somatic'),
+  epistemic:  document.getElementById('sl-epistemic'),
+  relational: document.getElementById('sl-relational'),
+  temporal:   document.getElementById('sl-temporal'),
+  stress:     document.getElementById('sl-stress'),
+  resonance:  document.getElementById('sl-resonance'),
+};
+const VL = {
+  somatic:    document.getElementById('v-somatic'),
+  epistemic:  document.getElementById('v-epistemic'),
+  relational: document.getElementById('v-relational'),
+  temporal:   document.getElementById('v-temporal'),
+  stress:     document.getElementById('v-stress'),
+  resonance:  document.getElementById('v-resonance'),
+};
+Object.keys(SL).forEach(k => { SL[k].oninput = () => { VL[k].textContent = SL[k].value; }; });
+
+const SL_SPD   = document.getElementById('sl-speed');
+const VL_SPD   = document.getElementById('v-speed');
+const SL_FLOCK = document.getElementById('sl-flock');
+const VL_FLOCK = document.getElementById('v-flock');
+SL_SPD.oninput   = () => { VL_SPD.textContent   = SL_SPD.value; };
+SL_FLOCK.oninput = () => { VL_FLOCK.textContent = SL_FLOCK.value; };
+
+function P() {
+  return {
+    s:  +SL.somatic.value    / 100,
+    e:  +SL.epistemic.value  / 100,
+    r:  +SL.relational.value / 100,
+    t:  +SL.temporal.value   / 100,
+    stress:    +SL.stress.value    / 100,
+    resonance: +SL.resonance.value / 100,
+  };
+}
+function spd()   { return +SL_SPD.value; }
+function flock() { return +SL_FLOCK.value / 100; }
+
+// ═══════════════════════════════════════════════
+//  ATTRACTORS  — CP upper, GP lower
+// ═══════════════════════════════════════════════
+let GP, CP;
+function placeAttractors() {
+  CP = { x: W * 0.50, y: H * 0.20 };
+  GP = { x: W * 0.50, y: H * 0.82 };
+}
+
+// ═══════════════════════════════════════════════
+//  MIC INPUT  (graceful fallback)
+// ═══════════════════════════════════════════════
+let micActive = false, audioCtx = null, analyser = null;
+let micBuf = null, micLevel = 0;
+
+async function toggleMic(btn) {
+  if (micActive) {
+    micActive = false;
+    if (audioCtx) { audioCtx.close(); audioCtx = null; analyser = null; }
+    btn.textContent = '☽ enable mic';
+    btn.classList.remove('active');
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    audioCtx  = new (window.AudioContext || window.webkitAudioContext)();
+    const src = audioCtx.createMediaStreamSource(stream);
+    analyser  = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    src.connect(analyser);
+    micBuf    = new Uint8Array(analyser.frequencyBinCount);
+    micActive = true;
+    btn.textContent = '◉ mic live';
+    btn.classList.add('active');
+  } catch(e) {
+    btn.textContent = '✕ mic unavailable';
+    setTimeout(() => { btn.textContent = '☽ enable mic'; }, 2800);
+  }
+}
+
+function updateMic() {
+  if (!micActive || !analyser) return;
+  analyser.getByteFrequencyData(micBuf);
+  let s = 0;
+  for (let i = 0; i < micBuf.length; i++) s += micBuf[i];
+  const raw = s / (micBuf.length * 255);
+  micLevel += (raw - micLevel) * 0.12;
+}
+
+// ═══════════════════════════════════════════════
+//  RESONANCE FIELD  — interference pattern on offscreen canvas
+//  Coherent standing waves when resonance high & stress low
+//  Incoherent noise when stress high
+// ═══════════════════════════════════════════════
+let resCanvas, resCtx;
+const RES_SCALE = 5;
+
+function buildResCanvas() {
+  resCanvas = document.createElement('canvas');
+  resCanvas.width  = Math.ceil(W / RES_SCALE);
+  resCanvas.height = Math.ceil(H / RES_SCALE);
+  resCtx = resCanvas.getContext('2d');
+}
+
+function drawResonanceField(coherence, stress, t) {
+  const rW = resCanvas.width, rH = resCanvas.height;
+  if (coherence < 0.04 && stress < 0.08) return;
+
+  const imgData = resCtx.createImageData(rW, rH);
+  const d = imgData.data;
+
+  // wave sources — more & tighter when coherent
+  const nSrc = 3 + Math.floor(coherence * 6);
+  const sources = [];
+  for (let i = 0; i < nSrc; i++) {
+    const angle = (i / nSrc) * Math.PI * 2 + t * 0.07;
+    const r = 0.20 + coherence * 0.22;
+    sources.push({
+      x: 0.5 + Math.cos(angle) * r,
+      y: 0.5 + Math.sin(angle) * r * 0.55,
+      freq:  0.020 + coherence * 0.010 + i * 0.003,
+      phase: i * 1.4 + t * (0.12 + coherence * 0.12),
+    });
+  }
+
+  for (let py = 0; py < rH; py++) {
+    for (let px = 0; px < rW; px++) {
+      const nx = px / rW, ny = py / rH;
+      let wave = 0;
+      for (const src of sources) {
+        const dx = nx - src.x, dy = (ny - src.y) * 1.5;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        wave += Math.sin(dist / src.freq - src.phase);
+      }
+      wave /= nSrc;
+
+      // noise injection scales with stress
+      const noise = stress * (Math.random() * 2 - 1) * 0.8;
+      wave = wave * (1 - stress * 0.6) + noise;
+      const n = (wave + 1) * 0.5;
+
+      const idx = (py * rW + px) * 4;
+      if (coherence > stress * 0.5) {
+        // coherent: blue-teal-cyan iridescence
+        d[idx]   = Math.round(n * 18  + coherence * 12);
+        d[idx+1] = Math.round(n * 60  + coherence * 90);
+        d[idx+2] = Math.round(n * 130 + coherence * 110);
+        d[idx+3] = Math.round(coherence * 60 * (0.35 + n * 0.65));
+      } else {
+        // stressed: amber-red fragmentation
+        d[idx]   = Math.round(n * 100 + stress * 60);
+        d[idx+1] = Math.round(n * 22  + stress * 8);
+        d[idx+2] = Math.round(n * 8);
+        d[idx+3] = Math.round(stress * 40 * (0.25 + n * 0.55));
+      }
+    }
+  }
+  resCtx.putImageData(imgData, 0, 0);
+
+  ctx.save();
+  ctx.globalAlpha = 0.50 + coherence * 0.25;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(resCanvas, 0, 0, W, H);
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════
+//  CURL NOISE
+// ═══════════════════════════════════════════════
+function sn(x, y, t) {
+  const s = 0.0010;
+  return (
+      Math.sin(x*s       + t*0.08) * Math.cos(y*s*1.3 + t*0.06)
+    + Math.sin(x*s*0.5   - t*0.07) * Math.cos(y*s*0.7 + t*0.10)
+    + 0.3 * Math.sin(x*s*1.1 + y*s*0.5 - t*0.05)
+  );
+}
+function curl(x, y, t, epi) {
+  const eps = 1.5;
+  const gx = (sn(x+eps,y,t) - sn(x-eps,y,t)) / (2*eps);
+  const gy = (sn(x,y+eps,t) - sn(x,y-eps,t)) / (2*eps);
+  const turb = 0.5 + epi * 1.1;
+  return { fx: gy*turb, fy: -gx*turb };
+}
+
+// ═══════════════════════════════════════════════
+//  MPCM BOUNDARY  — horizontal midline
+//  CP above (upper screen), GP below (lower screen)
+// ═══════════════════════════════════════════════
+function mpcmY(p) { return H * (0.50 + (1 - p.s) * 0.07); }
+
+// ═══════════════════════════════════════════════
+//  AGENTS
+// ═══════════════════════════════════════════════
+const N = 75;
+let agents = [];
+
+const TDIST = [
+  'extraction','extraction','extraction','extraction',
+  'kindness','kindness','kindness','kindness','kindness',
+  'neutral','neutral','neutral','neutral','neutral','neutral',
+];
+
+function spawn(i) {
+  return {
+    x:      W * (0.2 + Math.random() * 0.6),
+    y:      H * (0.35 + Math.random() * 0.30),
+    vx:     (Math.random()-0.5) * 0.4,
+    vy:     (Math.random()-0.5) * 0.4,
+    cc:     0.2 + Math.random() * 0.8,
+    ki:     TDIST[i%TDIST.length]==='kindness'   ? 1.0
+          : TDIST[i%TDIST.length]==='extraction' ? 0.0 : 0.5,
+    baseKi: TDIST[i%TDIST.length]==='kindness'   ? 1.0
+          : TDIST[i%TDIST.length]==='extraction' ? 0.0 : 0.5,
+    type:   TDIST[i%TDIST.length],
+    trail:  [],
+    phase:  Math.random() * Math.PI*2,
+    pspd:   0.006 + Math.random()*0.010,
+    sz:     3.0   + Math.random()*3.2,
+  };
+}
+function initAgents() {
+  agents = Array.from({length:N}, (_,i) => spawn(i));
+}
+
+// ═══════════════════════════════════════════════
+//  CASCADE
+// ═══════════════════════════════════════════════
+const RECRUIT_R = 55;
+
+function cascadeStep(kf, cc) {
+  const rr = 0.0008 * kf * cc;
+  const rs = 0.0003;
+  for (let i = 0; i < agents.length; i++) {
+    const a = agents[i];
+    for (let j = i+1; j < agents.length; j++) {
+      const b = agents[j];
+      const dx = a.x-b.x, dy = a.y-b.y;
+      const d = Math.sqrt(dx*dx+dy*dy);
+      if (d < RECRUIT_R) {
+        if (a.ki>0.7 && b.baseKi===0.5) b.ki = Math.min(1, b.ki + rr*(1-d/RECRUIT_R));
+        if (b.ki>0.7 && a.baseKi===0.5) a.ki = Math.min(1, a.ki + rr*(1-d/RECRUIT_R));
+        if (a.ki<0.3 && b.baseKi===0.5) b.ki = Math.max(0, b.ki - rs*0.5*(1-d/RECRUIT_R));
+        if (b.ki<0.3 && a.baseKi===0.5) a.ki = Math.max(0, a.ki - rs*0.5*(1-d/RECRUIT_R));
+      }
+    }
+    if (a.baseKi===0.5) a.ki += (a.baseKi - a.ki)*0.0002*(1-kf);
+  }
+}
+function kindnessFrac() { return agents.filter(a=>a.ki>0.6).length / agents.length; }
+
+// ═══════════════════════════════════════════════
+//  FLOCKING / MURMURATION
+//  Cohesion + alignment break apart under stress
+// ═══════════════════════════════════════════════
+const FL_R = 70, SEP_R = 22;
+
+function flockForce(ag, kf, stress, flStr) {
+  const eff = flStr * kf * (1 - stress*0.9) * ag.ki;
+  if (eff < 0.01) return {fx:0, fy:0};
+  let aX=0,aY=0,cX=0,cY=0,sX=0,sY=0, na=0,nc=0,ns=0;
+  for (const b of agents) {
+    if (b===ag) continue;
+    const dx=b.x-ag.x, dy=b.y-ag.y;
+    const d=Math.sqrt(dx*dx+dy*dy);
+    if (d<FL_R && b.ki>0.5) { aX+=b.vx; aY+=b.vy; na++; cX+=b.x; cY+=b.y; nc++; }
+    if (d<SEP_R) { sX-=dx/(d+0.1); sY-=dy/(d+0.1); ns++; }
+  }
+  let fx=0,fy=0;
+  if (na) { fx+=(aX/na-ag.vx)*0.022*eff; fy+=(aY/na-ag.vy)*0.022*eff; }
+  if (nc) { fx+=(cX/nc-ag.x)*0.0007*eff; fy+=(cY/nc-ag.y)*0.0007*eff; }
+  if (ns) { fx+=sX*0.018; fy+=sY*0.018; }
+  return {fx,fy};
+}
+
+// ═══════════════════════════════════════════════
+//  GRAVITY
+// ═══════════════════════════════════════════════
+function grav(ax,ay,bx,by,mass) {
+  const dx=bx-ax, dy=by-ay;
+  const d=Math.sqrt(dx*dx+dy*dy)+45;
+  const f=(mass*380)/(d*d);
+  return {fx:(dx/d)*f, fy:(dy/d)*f};
+}
+
+// ═══════════════════════════════════════════════
+//  STEP
+// ═══════════════════════════════════════════════
+function step(ag, p, stress, t, dt) {
+  const kf = p.r*0.45 + p.s*0.25 + p.t*0.30;
+  const cc = p.s*0.40 + p.e*0.35 + p.r*0.15 + p.t*0.10;
+  const S  = spd();
+  const eff = ag.ki;
+
+  // GP pull deepens under stress — the low-energy basin
+  const gpBoost = 1.0 + stress * 2.0;
+  const gpStr = ((1-eff)*(0.65-kf*0.50) + eff*0.02) * gpBoost;
+  const cpStr =   eff   *(0.65-(1-kf)*0.35) + (1-eff)*0.02;
+
+  const {fx:cfx,fy:cfy} = curl(ag.x, ag.y, t, p.e);
+  const {fx:gpx,fy:gpy} = grav(ag.x, ag.y, GP.x, GP.y, gpStr);
+  const {fx:cpx,fy:cpy} = grav(ag.x, ag.y, CP.x, CP.y, cpStr);
+
+  // MPCM boundary — CP above line, GP below
+  const my = mpcmY(p);
+  let mpcmFy = 0;
+  if (ag.ki < 0.3) {
+    // extraction: resist crossing upward through boundary
+    const dist = my - ag.y;
+    if (dist > -30 && dist < 60)
+      mpcmFy = 0.45 * Math.exp(-dist*dist/800);
+  } else if (ag.ki > 0.7 && ag.y < my) {
+    // kindness above boundary: extra CP pull
+    const {fy:eCpy} = grav(ag.x, ag.y, CP.x, CP.y, 0.28*kf);
+    mpcmFy = eCpy;
+  }
+
+  // stress scatter
+  const sc = stress > 0.35 ? (Math.random()-0.5)*stress*3.0 : 0;
+  const sy = stress > 0.35 ? (Math.random()-0.5)*stress*3.0 : 0;
+
+  const {fx:flX,fy:flY} = flockForce(ag, kf, stress, flock());
+
+  const resp = 0.6 + ag.cc*0.7;
+  const ax   = (cfx+gpx+cpx+flX+sc) * resp;
+  const ay   = (cfy+gpy+cpy+mpcmFy+flY+sy) * resp;
+
+  ag.vx = ag.vx*0.940 + ax*dt*0.018*S;
+  ag.vy = ag.vy*0.940 + ay*dt*0.018*S;
+
+  const v    = Math.sqrt(ag.vx*ag.vx+ag.vy*ag.vy);
+  const maxV = (0.6+cc*0.8+stress*1.4)*S*0.5;
+  if (v>maxV) { ag.vx*=maxV/v; ag.vy*=maxV/v; }
+
+  ag.cc    += (cc-ag.cc)*0.005;
+  ag.phase += ag.pspd*S*0.5;
+
+  ag.trail.push({x:ag.x, y:ag.y, ki:ag.ki, cc:ag.cc});
+  const maxTr = Math.floor(30 + ag.cc*65*(1-stress*0.65));
+  if (ag.trail.length > maxTr) ag.trail.shift();
+
+  ag.x += ag.vx; ag.y += ag.vy;
+  const m=45;
+  if (ag.x<-m) ag.x=W+m; if (ag.x>W+m) ag.x=-m;
+  if (ag.y<-m) ag.y=H+m; if (ag.y>H+m) ag.y=-m;
+}
+
+// ═══════════════════════════════════════════════
+//  COLOUR
+// ═══════════════════════════════════════════════
+function rgb(ki, cc) {
+  const r=Math.round(ki<0.5 ? 160+cc*30-ki*2*120 : (1-ki)*2*30+8+cc*18);
+  const g=Math.round(ki<0.5 ? 35+cc*15+ki*2*60   : 75+ki*2*0.5*55+cc*70);
+  const b=Math.round(ki<0.5 ? 10+cc*8+ki*2*55    : 50+cc*40);
+  return `${r},${g},${b}`;
+}
+
+function drawTrail(ag) {
+  const tr=ag.trail, len=tr.length;
+  if (len<2) return;
+  for (let i=1;i<len;i++) {
+    const frac=i/len, alpha=frac*frac*0.38*tr[i].cc;
+    ctx.beginPath();
+    ctx.moveTo(tr[i-1].x,tr[i-1].y); ctx.lineTo(tr[i].x,tr[i].y);
+    ctx.strokeStyle=`rgba(${rgb(tr[i].ki,tr[i].cc)},${alpha})`;
+    ctx.lineWidth=frac*2.2; ctx.stroke();
+  }
+}
+
+function drawFish(ag) {
+  const v     = Math.sqrt(ag.vx*ag.vx+ag.vy*ag.vy);
+  const angle = v>0.003 ? Math.atan2(ag.vy,ag.vx) : ag.phase*0.05;
+  const pulse = 0.88+0.12*Math.sin(ag.phase);
+  const sz    = ag.sz*pulse*(0.5+ag.cc*0.8);
+  const glow  = sz*(1.8+ag.ki*0.8+ag.cc*1.0);
+  const c     = rgb(ag.ki,ag.cc);
+
+  ctx.save(); ctx.translate(ag.x,ag.y); ctx.rotate(angle);
+
+  const ga=ctx.createRadialGradient(0,0,0,0,0,glow);
+  ga.addColorStop(0,`rgba(${c},${0.55*ag.cc*ag.ki*0.6+0.1})`);
+  ga.addColorStop(0.4,`rgba(${c},${0.15*ag.cc})`);
+  ga.addColorStop(1,`rgba(${c},0)`);
+  ctx.beginPath(); ctx.arc(0,0,glow,0,Math.PI*2); ctx.fillStyle=ga; ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(sz*1.7,0);
+  ctx.bezierCurveTo(sz*0.5,-sz*0.42,-sz*0.6,-sz*0.30,-sz*1.0,0);
+  ctx.bezierCurveTo(-sz*0.6,sz*0.30,sz*0.5,sz*0.42,sz*1.7,0);
+  ctx.fillStyle=`rgba(${c},${0.70+ag.cc*0.30})`; ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(sz*0.2,-sz*0.30);
+  ctx.quadraticCurveTo(sz*0.55,-sz*0.72,sz*1.0,-sz*0.24);
+  ctx.closePath(); ctx.fillStyle=`rgba(${c},0.28)`; ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(-sz*1.0,0); ctx.lineTo(-sz*1.85,-sz*0.52);
+  ctx.lineTo(-sz*1.45,0); ctx.lineTo(-sz*1.85,sz*0.52); ctx.closePath();
+  ctx.fillStyle=`rgba(${c},0.42)`; ctx.fill();
+
+  ctx.beginPath(); ctx.arc(sz*1.02,-sz*0.10,sz*0.13,0,Math.PI*2);
+  ctx.fillStyle=`rgba(220,245,230,${0.65*ag.cc})`; ctx.fill();
+
+  if (ag.ki>0.75) {
+    ctx.beginPath(); ctx.arc(0,0,sz*1.5,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(29,200,130,${(0.4+0.35*Math.sin(ag.phase*1.3))*0.18*ag.ki})`;
+    ctx.lineWidth=0.7; ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════
+//  DRAW BASINS
+// ═══════════════════════════════════════════════
+function drawBasin(cx,cy,r,c,str,label,lOff) {
+  const g=ctx.createRadialGradient(cx,cy,0,cx,cy,r);
+  g.addColorStop(0,`rgba(${c},${0.22*str})`);
+  g.addColorStop(0.45,`rgba(${c},${0.08*str})`);
+  g.addColorStop(1,`rgba(${c},0)`);
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
+  ctx.font='8px Space Mono,monospace';
+  ctx.fillStyle=`rgba(${c},${0.28*str})`;
+  ctx.fillText(label, cx-28, cy+(lOff||r*0.55));
+}
+
+// ═══════════════════════════════════════════════
+//  DRAW MPCM BOUNDARY
+// ═══════════════════════════════════════════════
+function drawMPCM(p, kf) {
+  const y = mpcmY(p);
+  const crossers = agents.filter(a=>a.ki>0.6 && Math.abs(a.y-y)<40).length;
+  const glow = 0.08 + (crossers/agents.length)*0.35;
+
+  const g=ctx.createLinearGradient(0,y,W,y);
+  g.addColorStop(0,'rgba(0,180,110,0)');
+  g.addColorStop(0.15,`rgba(0,190,120,${glow})`);
+  g.addColorStop(0.5,`rgba(0,210,140,${glow*1.6})`);
+  g.addColorStop(0.85,`rgba(0,190,120,${glow})`);
+  g.addColorStop(1,'rgba(0,180,110,0)');
+  ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y);
+  ctx.strokeStyle=g; ctx.lineWidth=1.0; ctx.stroke();
+
+  ctx.font='7px Space Mono,monospace';
+  ctx.fillStyle=`rgba(0,160,100,${0.18+glow*0.35})`;
+  ctx.fillText('— MPCM boundary —', W*0.03, y-5);
+  ctx.fillStyle=`rgba(29,158,117,${0.14+glow*0.18})`;
+  ctx.fillText('↑ kindness basin · learning requires effort', W*0.03, y-15);
+  ctx.fillStyle=`rgba(180,60,10,${0.12+glow*0.10})`;
+  ctx.fillText('↓ extraction basin · low-energy default under stress', W*0.03, y+14);
+}
+
+// ═══════════════════════════════════════════════
+//  DRAW FLOW HINTS
+// ═══════════════════════════════════════════════
+function drawFlow(p,t) {
+  const cols=20,rows=12,cw=W/cols,ch=H/rows;
+  ctx.save(); ctx.globalAlpha=0.06+p.e*0.07;
+  for (let r=0;r<rows;r++) for (let c=0;c<cols;c++) {
+    const x=(c+0.5)*cw, y=(r+0.5)*ch;
+    const {fx,fy}=curl(x,y,t,p.e);
+    const len=Math.sqrt(fx*fx+fy*fy);
+    if (len<0.001) continue;
+    const nx=fx/len,ny=fy/len,s=5+p.e*5;
+    ctx.beginPath();
+    ctx.moveTo(x-nx*s*0.5,y-ny*s*0.5); ctx.lineTo(x+nx*s*0.5,y+ny*s*0.5);
+    ctx.strokeStyle='rgba(15,90,55,1)'; ctx.lineWidth=0.35; ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════
+//  DEMO
+// ═══════════════════════════════════════════════
+let demoActive=false, demoT=0;
+
+const DEMO_SCRIPT = [
+  [0,  4,  [80,12,18,28, 72,12], 'S0 — frozen order · extraction basin dominant'],
+  [4,  7,  [55,55,35,35, 50,30], 'T01 — the first crack'],
+  [7,  11, [50,70,55,50, 35,50], 'S1 — productive disequilibration'],
+  [11, 15, [55,65,60,60, 20,65], 'T23 — resonance field nucleating'],
+  [15, 20, [78,75,82,78,  8,82], 'S3 — holarchic flow · murmuration begins'],
+  [20, 26, [82,78,88,82,  4,90], 'S3 — cascade deepens · fish swim upward'],
+  [26, 31, [85,80,90,85,  2,96], 'S3 — the commons alive · field coherent'],
+];
+
+function demoFrame(dt) {
+  demoT += dt*0.001*Math.max(2,spd()*0.6);
+  let seg=DEMO_SCRIPT[DEMO_SCRIPT.length-1];
+  for (const s of DEMO_SCRIPT) { if (demoT>=s[0] && demoT<s[1]) {seg=s;break;} }
+  const [start,end,targets,label]=seg;
+  const frac=Math.min(1,(demoT-start)/(end-start));
+  const ease=frac*frac*(3-2*frac);
+  const keys=['somatic','epistemic','relational','temporal','stress','resonance'];
+  keys.forEach((k,i) => {
+    const cur=+SL[k].value, tgt=targets[i];
+    SL[k].value=cur+(tgt-cur)*ease*0.08;
+    VL[k].textContent=Math.round(+SL[k].value);
+  });
+  const dl=document.getElementById('demo-label');
+  dl.textContent=label; dl.style.opacity='1';
+  if (demoT>DEMO_SCRIPT[DEMO_SCRIPT.length-1][1]) stopDemo();
+}
+
+function toggleDemo(btn) {
+  if (demoActive) {stopDemo();return;}
+  demoActive=true; demoT=0;
+  btn.textContent='■ stop demo'; btn.classList.add('active');
+  document.getElementById('cascade-bar-wrap').style.opacity='1';
+  initAgents();
+}
+function stopDemo() {
+  demoActive=false;
+  const btn=document.getElementById('btn-demo');
+  btn.textContent='▶ watch the cascade'; btn.classList.remove('active');
+  document.getElementById('demo-label').style.opacity='0';
+  document.getElementById('cascade-bar-wrap').style.opacity='0';
+}
+
+// ═══════════════════════════════════════════════
+//  PRESETS
+// ═══════════════════════════════════════════════
+function applyPreset(name,btn) {
+  stopDemo();
+  document.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const MAP = {
+    trauma:    [ 4, 4, 4, 4,95, 5],
+    frozen:    [82,12,18,28,58,18],
+    crack:     [48,68,42,38,38,42],
+    vacant:    [42,60,38,58,25,55],
+    flow:      [83,78,86,82, 6,88],
+    reversion: [44,28,32,44,62,20],
+    reset:     [50,50,50,50,20,40],
+  };
+  const [s,e,r,t,st,res]=MAP[name]||[50,50,50,50,20,40];
+  SL.somatic.value=s;   VL.somatic.textContent=s;
+  SL.epistemic.value=e; VL.epistemic.textContent=e;
+  SL.relational.value=r;VL.relational.textContent=r;
+  SL.temporal.value=t;  VL.temporal.textContent=t;
+  SL.stress.value=st;   VL.stress.textContent=st;
+  SL.resonance.value=res;VL.resonance.textContent=res;
+}
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+const STATE_DESC = {
+  S5:'dissolution — no field · extraction dominates',
+  S4:'reversion — capture in progress',
+  S0:'frozen order — coherence without life',
+  S1:'productive disequilibration — the crack',
+  S2:'vacant place — neither / nor',
+  S3:'holarchic flow — the commons alive',
+};
+function computeState(p,stress) {
+  const cc=p.s*0.40+p.e*0.35+p.r*0.15+p.t*0.10;
+  const kf=p.r*0.45+p.s*0.25+p.t*0.30;
+  const v=(cc+kf)/2*(1-stress*0.4);
+  if(v<0.18)return'S5'; if(v<0.33)return'S4'; if(v<0.48)return'S0';
+  if(v<0.62)return'S1'; if(v<0.78)return'S2'; return'S3';
+}
+
+// ═══════════════════════════════════════════════
+//  MAIN LOOP
+// ═══════════════════════════════════════════════
+let simT=0,flowT=0,lastTS=null;
+
+function frame(ts) {
+  if (!lastTS) lastTS=ts;
+  const dt=Math.min(ts-lastTS,50); lastTS=ts;
+  const S=spd();
+  simT  += dt*0.001*S*0.5;
+  flowT += dt*0.0003*S*0.4;
+
+  if (demoActive) demoFrame(dt);
+  updateMic();
+
+  const p      = P();
+  const stress = micActive ? Math.max(p.stress, micLevel*1.3) : p.stress;
+  const cc     = p.s*0.40+p.e*0.35+p.r*0.15+p.t*0.10;
+  const kf     = p.r*0.45+p.s*0.25+p.t*0.30;
+  const coherence = Math.max(0, p.resonance - stress*0.75);
+
+  cascadeStep(kf,cc);
+
+  const state = computeState(p,stress);
+  const kFrac = kindnessFrac();
+
+  document.getElementById('s-cc').textContent      = cc.toFixed(2);
+  document.getElementById('s-kf').textContent      = kf.toFixed(2);
+  document.getElementById('s-res').textContent     = coherence.toFixed(2);
+  document.getElementById('s-stress').textContent  = stress.toFixed(2);
+  document.getElementById('s-at').textContent      = state;
+  if (!demoActive) document.getElementById('state-display').textContent=STATE_DESC[state]||'';
+  document.getElementById('cascade-fill').style.width   = Math.round(kFrac*100)+'%';
+  document.getElementById('resonance-fill').style.width = Math.round(coherence*100)+'%';
+
+  // ── RENDER ──────────────────────────────────
+  ctx.fillStyle='rgba(0,6,16,0.030)'; ctx.fillRect(0,0,W,H);
+
+  drawResonanceField(coherence, stress, simT);
+  drawFlow(p, flowT);
+
+  const gpMass=(0.35+(1-kf)*0.85)*(1+stress*0.7);
+  const cpMass= 0.22+kf*0.95*(1-stress*0.3);
+
+  // GP lower, label below center
+  drawBasin(GP.x, GP.y, 80+gpMass*140, '145,55,8',  gpMass, 'Giant Pumpkin',   55);
+  // CP upper, label above center
+  drawBasin(CP.x, CP.y, 68+cpMass*150, '8,130,78',  cpMass, 'Commitment Pool', -62);
+
+  drawMPCM(p, kf);
+
+  agents.forEach(ag=>drawTrail(ag));
+  agents.forEach(ag=>{ step(ag,p,stress,simT,dt); drawFish(ag); });
+
+  requestAnimationFrame(frame);
+}
+
+// ═══════════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════════
+resize();
+initAgents();
+buildResCanvas();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
