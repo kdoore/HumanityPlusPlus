@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIM · TKGPT Inquiry Scaffold</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0e0f0c;
+  --bg2: #161810;
+  --bg3: #1e2018;
+  --border: rgba(180,178,169,0.12);
+  --border2: rgba(180,178,169,0.22);
+  --text: #c8c6bc;
+  --text2: #888780;
+  --text3: #555450;
+  --teal: #1D9E75;
+  --teal-dim: rgba(29,158,117,0.15);
+  --teal-text: #5DCAA5;
+  --amber: #BA7517;
+  --amber-dim: rgba(186,117,23,0.12);
+  --amber-text: #EF9F27;
+  --green: #3B6D11;
+  --green-dim: rgba(59,109,17,0.15);
+  --green-text: #97C459;
+  --purple: #534AB7;
+  --purple-dim: rgba(83,74,183,0.15);
+  --purple-text: #AFA9EC;
+  --coral-dim: rgba(153,60,29,0.15);
+  --coral-text: #F0997B;
+  --warn: #E24B4A;
+  --warn-dim: rgba(226,75,74,0.1);
+  --warn-text: #F09595;
+  --mono: 'DM Mono', monospace;
+  --serif: 'Lora', Georgia, serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+.page {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) 340px;
+  grid-template-rows: auto 1fr;
+  gap: 0;
+  min-height: 100vh;
+}
+
+/* ── HEADER ── */
+.header {
+  grid-column: 1 / -1;
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.header-title {
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  font-style: italic;
+  letter-spacing: 0.01em;
+}
+.header-sub {
+  font-size: 11px;
+  color: var(--text3);
+  letter-spacing: 0.04em;
+}
+
+/* ── LEFT: STACK ── */
+.left {
+  padding: 16px 16px 24px;
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 4px;
+}
+
+.layer {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.layer-hd {
+  padding: 8px 12px 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: default;
+}
+
+.lnum {
+  font-size: 9px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+  font-family: var(--mono);
+}
+
+.ltitle {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.lsub {
+  font-size: 10px;
+  color: var(--text3);
+  margin-top: 1px;
+}
+
+.layer-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 10px 10px;
+}
+
+.nb {
+  border: 1px solid transparent;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 5px 9px;
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 10px;
+  transition: border-color 0.12s, opacity 0.12s;
+  background: transparent;
+}
+.nb:hover { opacity: 0.75; border-color: var(--border2); }
+.nb.active {
+  border-color: var(--text2);
+  outline: none;
+}
+.nb-title {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 1px;
+  letter-spacing: 0.02em;
+}
+.nb-sub {
+  display: block;
+  opacity: 0.6;
+  font-size: 9px;
+}
+
+/* connector between layers */
+.conn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  height: 18px;
+}
+.cline { flex: 1; height: 1px; background: var(--border); }
+.clabel { font-size: 9px; color: var(--text3); letter-spacing: 0.06em; white-space: nowrap; }
+
+/* Layer color themes */
+.l-sub  { background: var(--purple-dim); border-color: rgba(83,74,183,0.25); }
+.l-sub .ltitle { color: var(--purple-text); }
+.l-sub .lnum { background: rgba(83,74,183,0.3); color: var(--purple-text); }
+
+.l-conf { background: var(--bg2); border-color: var(--border); }
+.l-conf .ltitle { color: var(--text); }
+.l-conf .lnum { background: var(--bg3); color: var(--text2); }
+
+.l-nav  { background: var(--green-dim); border-color: rgba(59,109,17,0.25); }
+.l-nav .ltitle { color: var(--green-text); }
+.l-nav .lnum { background: rgba(59,109,17,0.3); color: var(--green-text); }
+
+.l-traj { background: var(--bg2); border-color: var(--border); }
+.l-traj .ltitle { color: var(--text); }
+.l-traj .lnum { background: var(--bg3); color: var(--text2); }
+
+/* node button color variants */
+.n-purple { background: var(--purple-dim); color: var(--purple-text); }
+.n-teal   { background: var(--teal-dim);   color: var(--teal-text);   }
+.n-amber  { background: var(--amber-dim);  color: var(--amber-text);  }
+.n-green  { background: var(--green-dim);  color: var(--green-text);  }
+.n-coral  { background: var(--coral-dim);  color: var(--coral-text);  }
+.n-gray   { background: var(--bg3);        color: var(--text2);       }
+
+/* ── RIGHT: PANEL ── */
+.right {
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panel-empty {
+  color: var(--text3);
+  font-size: 11px;
+  line-height: 1.7;
+  padding: 8px 0;
+  font-style: italic;
+  font-family: var(--serif);
+}
+
+.p-layer {
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 0.08em;
+  margin-bottom: 2px;
+}
+.p-title {
+  font-family: var(--serif);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+/* Definition block */
+.defn-block {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.defn-label {
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+  display: block;
+}
+.defn-text {
+  font-size: 11px;
+  color: var(--text);
+  line-height: 1.65;
+  font-family: var(--serif);
+  font-style: italic;
+}
+.defn-kv {
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 10px;
+}
+.defn-k {
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.defn-v {
+  font-size: 9px;
+  color: var(--text2);
+}
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+}
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.divider-label {
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+/* Transparency notice */
+.notice {
+  background: var(--warn-dim);
+  border: 1px solid rgba(226,75,74,0.2);
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 10px;
+  color: var(--warn-text);
+  line-height: 1.55;
+}
+.notice-label {
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  margin-bottom: 3px;
+  display: block;
+  font-size: 9px;
+}
+
+/* Context field */
+.ctx-label {
+  font-size: 10px;
+  color: var(--text2);
+  margin-bottom: 4px;
+  display: block;
+  letter-spacing: 0.03em;
+}
+.ctx-example {
+  font-size: 9px;
+  color: var(--text3);
+  margin-bottom: 6px;
+  font-style: italic;
+}
+textarea.ctx-input {
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 8px 10px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  color: var(--text);
+  resize: vertical;
+  min-height: 60px;
+  line-height: 1.5;
+  outline: none;
+}
+textarea.ctx-input:focus { border-color: var(--teal); }
+
+/* Prompt preview */
+.prompt-preview {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+  font-size: 10px;
+  color: var(--text2);
+  line-height: 1.65;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.ps { margin-bottom: 10px; }
+.ps:last-child { margin-bottom: 0; }
+.ps-label {
+  font-size: 9px;
+  color: var(--teal-text);
+  letter-spacing: 0.06em;
+  margin-bottom: 3px;
+  font-weight: 500;
+}
+.ps-label.warn { color: var(--warn-text); }
+.ps-label.amber { color: var(--amber-text); }
+.ps-body { color: var(--text); font-size: 10px; }
+
+/* copy button */
+.copy-btn {
+  width: 100%;
+  padding: 9px;
+  background: transparent;
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  color: var(--text2);
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.copy-btn:hover { border-color: var(--teal); color: var(--teal-text); }
+.copy-btn.ok { background: var(--teal-dim); border-color: var(--teal); color: var(--teal-text); }
+.copy-btn.fail { color: var(--warn-text); border-color: var(--warn); }
+
+.hint {
+  font-size: 9px;
+  color: var(--text3);
+  line-height: 1.5;
+  font-style: italic;
+}
+
+/* ── FOOTER ── */
+.footer {
+  grid-column: 1 / -1;
+  padding: 10px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.footer-text { font-size: 9px; color: var(--text3); letter-spacing: 0.04em; }
+.footer-badge {
+  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+.badge-puppet { background: var(--warn-dim); color: var(--warn-text); border: 1px solid rgba(226,75,74,0.2); }
+.badge-vim    { background: var(--teal-dim);  color: var(--teal-text);  border: 1px solid rgba(29,158,117,0.2); }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+<!-- HEADER -->
+<header class="header">
+  <span class="header-title">VIM · TKGPT Inquiry Scaffold</span>
+  <span class="header-sub">Click any node → edit your context → copy the structured prompt</span>
+</header>
+
+<!-- LEFT: TAXONOMY STACK -->
+<main class="left" aria-label="VIM ontological taxonomy — click nodes to generate prompts">
+<div class="stack">
+
+  <!-- L0 SUBSTRATE (bottom) -->
+  <div class="layer l-sub">
+    <div class="layer-hd">
+      <span class="lnum">L0</span>
+      <div>
+        <div class="ltitle">Substrate</div>
+        <div class="lsub">Field coherence · prior condition · what Levin and Geesink/Meijer measure</div>
+      </div>
+    </div>
+    <div class="layer-body">
+      <button class="nb n-purple" data-id="sigma" onclick="sel('sigma')"><span class="nb-title">σ — coherence</span><span class="nb-sub">field scalar 0→π/2</span></button>
+      <button class="nb n-purple" data-id="ode-alpha" onclick="sel('ode-alpha')"><span class="nb-title">α(C*−C)</span><span class="nb-sub">restorative pull</span></button>
+      <button class="nb n-purple" data-id="ode-beta" onclick="sel('ode-beta')"><span class="nb-title">βG</span><span class="nb-sub">structural input</span></button>
+      <button class="nb n-purple" data-id="ode-gamma" onclick="sel('ode-gamma')"><span class="nb-title">γS_eff</span><span class="nb-sub">stress load</span></button>
+      <button class="nb n-purple" data-id="ode-delta" onclick="sel('ode-delta')"><span class="nb-title">δ</span><span class="nb-sub">entropic drift</span></button>
+    </div>
+  </div>
+
+  <div class="conn"><div class="cline"></div><span class="clabel">enables configurations</span><div class="cline"></div></div>
+
+  <!-- L1 CONFIGURATION -->
+  <div class="layer l-conf">
+    <div class="layer-hd">
+      <span class="lnum">L1</span>
+      <div>
+        <div class="ltitle">Configuration</div>
+        <div class="lsub">Attractor states · patterns that stabilize in the field · each occupies a σ zone</div>
+      </div>
+    </div>
+    <div class="layer-body">
+      <button class="nb n-coral" data-id="s5"   onclick="sel('s5')"><span class="nb-title">S5 — Traumatic chaos</span><span class="nb-sub">off-surface · σ→0</span></button>
+      <button class="nb n-amber" data-id="s4"   onclick="sel('s4')"><span class="nb-title">S4 — Reversion</span><span class="nb-sub">captured · σ near π/4</span></button>
+      <button class="nb n-amber" data-id="s0"   onclick="sel('s0')"><span class="nb-title">S0 — Frozen order</span><span class="nb-sub">brittle · σ low–mid</span></button>
+      <button class="nb n-green" data-id="s1s2" onclick="sel('s1s2')"><span class="nb-title">S1/S2 — Threshold zone</span><span class="nb-sub">transition · σ ≈ π/4</span></button>
+      <button class="nb n-teal"  data-id="s3"   onclick="sel('s3')"><span class="nb-title">S3 — Holarchic flow</span><span class="nb-sub">distributed · σ→π/2</span></button>
+    </div>
+  </div>
+
+  <div class="conn"><div class="cline"></div><span class="clabel">read by instruments</span><div class="cline"></div></div>
+
+  <!-- L2 NAVIGATION -->
+  <div class="layer l-nav">
+    <div class="layer-hd">
+      <span class="lnum">L2</span>
+      <div>
+        <div class="ltitle">Navigation</div>
+        <div class="lsub">Human instruments reading field conditions · policy π selecting transitions</div>
+      </div>
+    </div>
+    <div class="layer-body">
+      <button class="nb n-green" data-id="spade"   onclick="sel('spade')"><span class="nb-title">♠ Somatic Gyroscope</span><span class="nb-sub">reads γS_eff · ground</span></button>
+      <button class="nb n-green" data-id="diamond" onclick="sel('diamond')"><span class="nb-title">♦ Cognitive Radar</span><span class="nb-sub">reads δ · aperture</span></button>
+      <button class="nb n-green" data-id="heart"   onclick="sel('heart')"><span class="nb-title">♥ Relational Compass</span><span class="nb-sub">reads α(C*−C) · values</span></button>
+      <button class="nb n-green" data-id="club"    onclick="sel('club')"><span class="nb-title">♣ Dimensional Integration</span><span class="nb-sub">reads βG · structure</span></button>
+      <button class="nb n-gray"  data-id="pi"      onclick="sel('pi')"><span class="nb-title">π — Policy</span><span class="nb-sub">not a state · selects</span></button>
+    </div>
+  </div>
+
+  <div class="conn"><div class="cline"></div><span class="clabel">shapes trajectory</span><div class="cline"></div></div>
+
+  <!-- L3 TRAJECTORY (top) -->
+  <div class="layer l-traj">
+    <div class="layer-hd">
+      <span class="lnum">L3</span>
+      <div>
+        <div class="ltitle">Trajectory</div>
+        <div class="lsub">Path through state space over time · shaped by field history</div>
+      </div>
+    </div>
+    <div class="layer-body">
+      <button class="nb n-gray"  data-id="transitions" onclick="sel('transitions')"><span class="nb-title">Transitions</span><span class="nb-sub">σ-gated edges</span></button>
+      <button class="nb n-teal"  data-id="vv"          onclick="sel('vv')"><span class="nb-title">Values vector</span><span class="nb-sub">direction of pull</span></button>
+      <button class="nb n-amber" data-id="basins"      onclick="sel('basins')"><span class="nb-title">Attractor basins</span><span class="nb-sub">GP · CP</span></button>
+      <button class="nb n-gray"  data-id="fib"         onclick="sel('fib')"><span class="nb-title">Fibonacci momentum</span><span class="nb-sub">S(n) shaped by S(n−1)</span></button>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<!-- RIGHT: PANEL -->
+<aside class="right" id="panel-area" aria-label="Definition and prompt panel">
+  <p class="panel-empty">Click any node in the diagram.<br><br>A structured inquiry prompt will appear here — five parts, using TIF neutrosophic logic and the MPCM boundary.<br><br>Edit your context, then copy and paste into any AI tool.</p>
+</aside>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <span class="footer-text">Humanity++ · Karen Doore · CC BY-SA 4.0 · kdoore.gitbook.io/vital-intelligence</span>
+  <span class="footer-badge badge-vim">VIM Framework</span>
+  <span class="footer-badge badge-puppet">PUPPET-aware · Shen et al. 2026</span>
+</footer>
+
+</div>
+
+<script>
+const EX = "I am an educator in a university design program, currently noticing that my students seem engaged but not genuinely transformed — they are producing work but not questioning their assumptions.";
+
+const NODES = {
+sigma:{layer:"L0 — Substrate",title:"σ — Field coherence",
+concept:"The coherence parameter σ is the scalar (0 to π/2) summarising the current state of the relational and informational field. σ_crit = π/4 is the bifurcation threshold separating the extraction basin (Giant Pumpkin) from the coherence basin (Commitment Pool). The four VIM instruments (♠♦♥♣) are the human agent's means of detecting and influencing σ.",
+tif:"T (Tier 1–2): The bifurcation threshold and its relationship to attractor dynamics is theoretically grounded in Evdokimov/Meijer (2026) and consistent with Levin's bioelectric field research.\nI (Tier 2–3): The precise mapping of σ onto human learning environments is a structural analogy, not an empirical measurement. What remains genuinely uncertain here?\nF: What claims about σ would you reject as unsupported?",
+ai:"Given this context, what would a system near σ_crit be expected to do? What prediction errors would be most salient — where would the gap between expected and actual be largest? What would a generative model update require?",
+mpcm:"What about field coherence in a human learning environment cannot be measured or modelled by any AI system? What does σ feel like from the inside — and why is that felt sense irreducible to any external metric?"},
+
+'ode-alpha':{layer:"L0 — Substrate",title:"α(C*−C) — Restorative pull",
+concept:"The α(C*−C) term in the coherence ODE represents the restorative pull toward kindness equilibrium. α is the strength of that pull; C* is the target coherence; C is current coherence. In VIM, this is what the ♥ Relational Compass reads. A strong kindness field means high α — the system is continuously drawn toward coherence even after disturbance.",
+tif:"T: The principle that relational trust functions as a restorative force toward coherence is consistent with trauma-informed practice, attachment theory, and Levin's bioelectric field findings (Tier 1).\nI: The precise functional form of α in human social systems is unknown. How would you describe the indeterminacy here?\nF: What would falsify the claim that relational trust is structurally restorative rather than merely pleasant?",
+ai:"What prediction errors signal that α is weakening — that restorative pull is diminishing — in the context described? What would active inference predict about a system losing access to its kindness equilibrium?",
+mpcm:"What does it feel like when α is high — when genuine relational pull toward something good is present? Can an AI system generate that pull, or only describe it?"},
+
+'ode-beta':{layer:"L0 — Substrate",title:"βG — Structural input",
+concept:"The βG term represents the contribution of the ecosystem's geometry — its governance structure, institutional design, holarchic organisation — to the coherence rate of change. In VIM, this is what ♣ Dimensional Integration reads. A commons governed by Ostrom's eight principles contributes positively to βG.",
+tif:"T: Ostrom's governance principles are empirically grounded in hundreds of commons management cases (Tier 1).\nI: How abstract institutional geometry translates into a measurable βG contribution is not yet formalised.\nF: What institutional conditions actively suppress βG — reduce the structural contribution to coherence?",
+ai:"What does the structural input βG look like in the context described? Where is the governance geometry supporting coherence, and where is it working against it?",
+mpcm:"What about your institution's geometry can only be felt from inside it — the texture of a meeting, the weight of unspoken norms — that no structural diagram can capture?"},
+
+'ode-gamma':{layer:"L0 — Substrate",title:"γS_eff — Stress load",
+concept:"The γS_eff term is the thermodynamic stress load. High threat or somatic dysregulation increases γS_eff, suppressing coherence regardless of relational or structural conditions. When this term dominates, the system is pulled below σ_crit regardless of values vector. This is what the ♠ Somatic Gyroscope reads — and why somatic grounding is the first instrument, not the last.",
+tif:"T: The cortisol-mediated suppression of higher cognitive and relational function under threat is Tier 1 neuroscience (Kuhl PSI theory, Siegel window of tolerance).\nI: How chronic institutional stress accumulates as γS_eff across a community rather than an individual is not yet formalised.\nF: What would it mean to claim that stress load has no effect on field coherence?",
+ai:"What would elevated γS_eff predict about the behaviour of a system in this context? What signals — in communication patterns, decision-making, relational dynamics — would mark high stress load?",
+mpcm:"What does high γS_eff feel like in your body right now, in your specific context? An AI cannot read your nervous system. What would your Somatic Gyroscope say if you paused and checked it before continuing?"},
+
+'ode-delta':{layer:"L0 — Substrate",title:"δ — Entropic drift",
+concept:"The δ term represents entropic drift — attention capture, epistemic scatter, and the cognitive cost of operating in a high-noise information environment. AI-mediated flows and recommendation algorithms all increase δ, gradually degrading σ even without acute threat. The ♦ Cognitive Radar's function is to reduce δ by naming and filtering the drift.",
+tif:"T: Attention economy effects on cognitive function are well-documented (Tier 1).\nI: How δ accumulates differently across learner types and cultural contexts is not uniform.\nF: What evidence would suggest that high information volume does not increase δ — that more information could be coherence-building?",
+ai:"What does elevated δ predict about the epistemic behaviour of a system in this context? What would be the signature of attention capture — the specific way drift manifests in this situation?",
+mpcm:"Notice your own δ right now. How many tabs are open? What interrupted you in the last hour? What does your ♦ Cognitive Radar read about your current epistemic aperture — and can an AI tell you that, or only you?"},
+
+s5:{layer:"L1 — Configuration",title:"S5 — Traumatic chaos",
+concept:"S5 is not a vertex on the octahedral MDP surface — it is a collapse inward, a loss of topology itself. σ approaches 0: no stable pattern is possible. Recovery cannot proceed through normal MDP transitions. Field restoration — relational trust and somatic coherence rebuilt from the ground up — must precede state navigation. This is the empirical claim of trauma-informed practice.",
+tif:"T: The sequence of somatic stabilisation before cognitive processing in trauma recovery is Tier 1 clinical evidence (Levine, van der Kolk, Siegel).\nI: The mapping of S5 onto specific institutional or collective experiences is Tier 3 — generative but not established.\nF: What would it mean to challenge the claim that S5 requires field restoration before navigation?",
+ai:"Given this context, what would a system experiencing topology collapse be predicted to do? What would active inference say about a generative model that has lost its basic coherence structure?",
+mpcm:"There are experiences that language cannot reach — where the ground itself is gone. An AI can describe S5 but cannot be in it, cannot hold another person who is in it. What does your context ask of you that requires presence rather than information?"},
+
+s4:{layer:"L1 — Configuration",title:"S4 — Reversion",
+concept:"S4 is a stable attractor in the extraction basin. σ is near π/4 but the values vector is captured — the system has enough energy to navigate but all transitions pull toward Giant Pumpkin dynamics. Zero holonomy: energy is expended but no net transformation occurs. S4 often wears the surface appearance of S3 — engagement, care, even collaboration — while the values vector points inward.",
+tif:"T: The distinction between genuine prosocial behaviour and sophisticated extraction mimicry is documented in evolutionary biology (Wilson multilevel selection, Tier 1).\nI: How to detect S4 from inside it — how a system in S4 would recognise itself — is genuinely indeterminate.\nF: What would you need to observe to be confident a system was in S3 rather than S4?",
+ai:"What would active inference predict about a system in S4 — what prediction errors would it suppress, what would it selectively attend to, how would it update its model? What does values-vector capture look like from the inside?",
+mpcm:"What is the felt sense of S4 — the specific quality of tightening that signals the values vector has been captured? Can you name a moment when you recognised it in yourself or your institution? An AI cannot feel that recognition."},
+
+s0:{layer:"L1 — Configuration",title:"S0 — Frozen order",
+concept:"S0 is a stable attractor: low-to-moderate σ, single dominant frequency, high internal consistency. Coherence mistaken for health; stillness mistaken for peace. The dominance hierarchy fully consolidated. Its brittleness is invisible until perturbation. In Geesink/Meijer terms: a single-frequency eigenstate, missing the distributed coherence of healthy biological systems.",
+tif:"T: The brittleness of highly centralised, low-entropy systems under perturbation is well-documented in complexity science and institutional research.\nI: Whether a specific institution is genuinely in S0 or in distributed coherence that looks centralised from outside requires contextual judgment.\nF: What evidence would suggest an apparently frozen institution is actually more adaptive than it appears?",
+ai:"What does active inference predict about a system in S0 — what is its relationship to prediction error, how does it handle surprise, what is its model update behaviour? What would the Ising model say about its temperature parameter?",
+mpcm:"What does S0 feel like from inside — the airlessness of a room where nothing is out of place and no one has breathed? Can you locate this quality in your current context?"},
+
+s1s2:{layer:"L1 — Configuration",title:"S1/S2 — Threshold zone",
+concept:"S1 (productive disequilibration) and S2 (vacant place) share the threshold zone because they are defined by instability, not endpoint. S1: the old frame is failing but still present — high energy, the crack propagating. S2: the old frame has dissolved — the Neither/Nor, maximum model uncertainty, the supersaturated state where the quasi-crystal nucleates. Both require the kindness field to remain generative rather than collapsing to S4 or S5.",
+tif:"T: The phenomenology of threshold states is documented across Mezirow's transformative learning theory, van Gennep's ritual theory, and multiple contemplative traditions.\nI: The precise boundary between S1 and S2 — when the old frame has 'genuinely dissolved' vs. merely suppressed — is indeterminate from outside and often from inside.\nF: What would falsify the claim that S2 requires a kindness field to remain productive rather than collapsing?",
+ai:"What does active inference predict about a system at the bifurcation threshold? What is happening to the precision-weighting of priors when the old frame is failing? What conditions allow the generative model to restructure rather than revert?",
+mpcm:"What does the vacant place feel like — when the old explanation has gone and the new one is not yet here? This is the zone where AI tools are most dangerous: they will offer a confident answer to fill the silence. Your instruments know when the silence is productive. Can you locate S1 or S2 in your current context?"},
+
+s3:{layer:"L1 — Configuration",title:"S3 — Holarchic flow",
+concept:"S3 is the maximum-coherence attractor: all six channels active, σ approaching π/2. The only attractor state that sustains itself without external forcing — the repair cycle maintains it. Ostrom's eight principles emerge as properties rather than imposed rules. Not a destination to be secured but a field condition to be maintained. The quasi-crystal: ordered, self-similar, future-plastic.",
+tif:"T: Self-organising systems implementing Ostrom's principles show measurable resilience advantages (Tier 1: Ostrom 1990, Wilson 2019).\nI: Whether any specific human collective is 'in S3' requires contextual instrument readings no external observer can substitute for.\nF: What would distinguish genuine S3 from a sophisticated simulation of it?",
+ai:"What does active inference predict about a system in S3 — how does it relate to prediction error, what is its model update behaviour, how does it handle surprise? What is the signature of distributed coherence in action?",
+mpcm:"S3 has a felt sense — ease that is not laziness, coherence that is not conformity, distributed intelligence that feels like thinking together rather than performing together. Have you been in it? What were its conditions?"},
+
+spade:{layer:"L2 — Navigation",title:"♠ Somatic Gyroscope",
+concept:"The z-axis vertical reference instrument, reading γS_eff — somatic stress load and threat-response state. Element: Earth. The first instrument because it is the most fundamental: under high γS_eff all other instrument readings are suppressed (Kuhl PSI Theory). Cannot be delegated to AI. Requires movement to provide orientation information. Shadow: Inflation — mistaking intensity for insight.",
+tif:"T: Cortisol-mediated suppression of relational and epistemic function under threat is Tier 1 neuroscience.\nI: How somatic awareness translates into navigational information — the specific practice of reading one's own γS_eff — is a cultivated skill whose development is not uniform across learners.\nF: What would it mean to claim that somatic state has no effect on cognitive or relational instrument readings?",
+ai:"What would active inference say about an agent whose somatic precision-weighting is dysregulated? How does the body's threat response shape the generative model's prediction hierarchy? What does PSI Theory predict about instrument access under high γS_eff?",
+mpcm:"The Somatic Gyroscope is irreducibly yours. Pause before continuing: where do you feel the weight of your current context in your body? What does your nervous system know that your analytical mind has not yet processed? This is the question no AI can answer for you."},
+
+diamond:{layer:"L2 — Navigation",title:"♦ Cognitive Radar",
+concept:"The scanning instrument, reading δ — entropic drift and epistemic aperture. Sweeps continuously; does not lock onto a single target. Uses TIF neutrosophic logic: T (confirmed), I (indeterminate), F (not supported). Shadow: Reductive literalism — the unmeasured becomes invisible. Must be calibrated against the Somatic Gyroscope: without somatic grounding, the radar produces rationalisation rather than genuine scanning.",
+tif:"T: Multi-hypothesis reasoning outperforms single-model confidence under uncertainty — documented in Tetlock's superforecasting research.\nI: How to calibrate confidence intervals on I (indeterminate) claims is itself indeterminate — a meta-epistemic challenge.\nF: What claims in your current context do you hold with false confidence? What would the F register of your ♦ radar say if it were fully honest?",
+ai:"What does active inference predict about an agent with good Cognitive Radar function — how does it handle precision-weighting across competing models? What is the cognitive signature of high δ — and how does radar function differently under low vs. high aperture?",
+mpcm:"The ♦ Cognitive Radar can be mimicked by an AI — it can produce TIF decompositions, flag indeterminacy, hold multiple hypotheses. What it cannot do is feel the difference between genuine curiosity and sophisticated rationalisation. Only you know which mode your radar is in right now."},
+
+heart:{layer:"L2 — Navigation",title:"♥ Relational Compass",
+concept:"The values-orienting instrument, reading α(C*−C) — restorative pull toward kindness equilibrium. Oriented by care, dignity, and non-harm across scales: self → group → society → ecology → future generations. Distinguishes S3 from S4 by reading the direction of pull, not the apparent behaviour. The kindness field is a structural condition, not a tonal performance. Shadow: Enmeshment — losing self in the relational field.",
+tif:"T: Prosocial values orientation is associated with genuine group-level resilience advantages (Wilson multilevel selection, Tier 1).\nI: How to read the values vector direction in a specific institutional context — distinguishing genuine S3 pull from S4 mimicry — requires relational presence that cannot be reduced to indicators.\nF: What evidence would suggest that values vector direction does not matter — that good outcomes emerge regardless of pull direction?",
+ai:"What would active inference predict about an agent with a well-functioning Relational Compass — how does it encode social priors, how does it weight relational prediction errors? What is the functional architecture of values-oriented navigation?",
+mpcm:"What does the ♥ Relational Compass read about your current context — which direction is the pull? This is a question whose honest answer requires somatic and relational awareness that no AI system can provide."},
+
+club:{layer:"L2 — Navigation",title:"♣ Dimensional Integration",
+concept:"The temporal-structural instrument, reading βG — the ecosystem's geometric contribution to coherence. Integrates across time scales (including the seven-generation horizon) and holarchic levels. Tracks the repair cycle: action → consequence → integration → return to MDP at a higher level. The instrument that can see Giant Pumpkin dynamics at institutional scale when individual-scale readings look healthy. Shadow: Abstraction spiral.",
+tif:"T: Long-horizon thinking and holarchic systems awareness are associated with better collective outcomes in complex adaptive systems research.\nI: How to hold a seven-generation horizon as a genuine navigational instrument rather than a rhetorical gesture is a practice question, not a cognitive one.\nF: What scale does your current context ask you to hold, and which scale are you most likely to omit?",
+ai:"What does the βG contribution look like in this context — how does the ecosystem's structure currently support or undermine coherence? What does active inference say about an agent integrating across multiple temporal and holarchic scales simultaneously?",
+mpcm:"The ♣ instrument asks: what is the seven-generation consequence of this? What is the consequence at the scale above the one you are currently focused on? These questions require embodied temporal imagination rooted in specific place and relationship — which no language model possesses."},
+
+pi:{layer:"L2 — Navigation",title:"π — Policy",
+concept:"The decision function that uses instrument readings to select available transitions. Not a state, not a field, not an instrument — the orienting function equidistant from all six states (octahedral inversion centre). π* (optimal policy): kindness field maintained, Ostrom values vector active, all four instruments functioning. Three failure modes: closure reflex (S1→S4), values vector capture (S3→S0), field collapse (S1→S5). TKGPT supports — does not substitute — π.",
+tif:"T: The formal structure of MDP policy functions and their relationship to attractor dynamics is well-established in computational decision theory.\nI: How a human agent's moment-to-moment policy operates — the real-time interplay of instrument readings — is not reducible to a formal algorithm.\nF: What would falsify the claim that the kindness field is necessary for π* — that good decisions can be made without relational trust as structural condition?",
+ai:"What does active inference say about a well-functioning policy — how does it integrate instrument precision-weightings, how does it handle competing attractor pulls, what does π* look like from a free-energy minimisation perspective?",
+mpcm:"π cannot be delegated. An AI can model decision options and map consequence spaces. But the policy — the actual choice, in this body, with these relationships, in this moment — is yours. What does your current π look like? Which instruments are you weighting most heavily, and which are you suppressing?"},
+
+transitions:{layer:"L3 — Trajectory",title:"Transitions — σ-gated edges",
+concept:"The available paths between MDP states, determined by σ relative to π/4 and by values vector direction. The octahedral geometry formalises which transitions exist (edges) and which are excluded (antipodal non-edges). Most important excluded transition: S0 ↔ S3 share no edge — the spectral gap λ=4 requires traversing S1 and S2. Valid transitions toward S3 require kindness field above σ_crit.",
+tif:"T: The mathematical structure of the octahedral graph and its excluded edges is formally established.\nI: Whether the specific failure transitions named (closure reflex, capture, field collapse) are the complete set, or whether additional failure modes exist, is an open empirical question.\nF: What evidence would suggest that direct S0→S3 transformation is possible — that productive disequilibration and the vacant place can be bypassed?",
+ai:"What does active inference predict about transition dynamics at the bifurcation threshold? How does the precision-weighting of priors change as σ crosses π/4? What would a free-energy landscape look like at the transition between extraction and coherence basins?",
+mpcm:"Which transition is your current context asking you to make? Where in the state space do you recognise yourself right now, and which path is most available given your current field conditions? An AI can map the structure. Only your instruments can read your current position within it."},
+
+vv:{layer:"L3 — Trajectory",title:"Values vector",
+concept:"The direction of the system's governing values — what it is optimising toward. Determines whether high σ produces S3 (generative coherence) or sophisticated S0/S4 mimicry. The most empirically grounded prosocial specification: Ostrom's eight design principles for commons governance, grounded evolutionarily by Wilson's multilevel selection research.",
+tif:"T: Ostrom's principles are empirically grounded in centuries of commons governance data. The evolutionary grounding in multilevel selection is Tier 1 biology.\nI: How to detect values vector direction in a specific institutional context — especially when S4 mimics S3 — requires judgment that cannot be reduced to behavioural indicators.\nF: What conditions would lead you to conclude that a values vector ostensibly oriented toward the commons was actually oriented toward extraction?",
+ai:"What does active inference predict about systems with different values vectors — how do prosocial vs. extractive attractors shape the generative model's prediction hierarchy, precision-weighting, and model update behaviour?",
+mpcm:"Values vectors are not stated — they are enacted. What does your institution's values vector do, as opposed to what it says? What does your own values vector do in the specific decisions you make under pressure? This requires honest self-observation no AI can perform."},
+
+basins:{layer:"L3 — Trajectory",title:"Attractor basins",
+concept:"The two gravitational regions of the state space, separated by the MPCM threshold at σ_crit = π/4. Giant Pumpkin (extraction basin): resources flow toward a central node, network periphery progressively depleted. Commitment Pool (coherence basin): value circulates back to contributors, network strengthens through use. Biophysical grounding: Levin's bioelectric fragmentation (GP at cellular scale), Geesink/Meijer's decoherence frequencies.",
+tif:"T: Attractor basin dynamics in complex systems are mathematically well-established. The biophysical grounding in Levin and Geesink/Meijer provides Tier 1 cellular-scale analog.\nI: The precise conditions under which a social or educational system shifts basin — the critical threshold in practice — is not reducible to any single measurable indicator.\nF: What evidence from your context would suggest the extraction basin claim is wrong?",
+ai:"What does active inference predict about agents operating in different attractor basins — how does basin membership shape the generative model, what prediction errors are systematically suppressed vs. amplified in each basin?",
+mpcm:"Which basin does your current information environment most resemble — and what would it take to change that? This is the framework's central question. It cannot be answered by an AI. It requires your full instrument panel and your honest observation of the pull you feel right now."},
+
+fib:{layer:"L3 — Trajectory",title:"Fibonacci momentum",
+concept:"The proposal that transition probability from S(n) depends on both S(n) and S(n−1), introducing trajectory — not just position — into the MDP. The body carries energetic residue of the prior state that shapes available transitions. Trauma's signature: strong backward pull toward S5/S4 even when current σ would otherwise permit forward movement.",
+tif:"T: The somatic residue of prior states shaping current physiological responses is Tier 1 trauma-informed practice (Levine, van der Kolk).\nI (Tier 3): The formal mathematical specification of Fibonacci momentum in the MDP is speculative — not yet formalised.\nF: What would falsify the claim that prior states have persistent effects on transition probabilities?",
+ai:"What does active inference say about path-dependent systems — how does the history of prediction errors shape current precision-weighting? What is the active inference analog of somatic residue from prior states?",
+mpcm:"What is the momentum your current state is carrying from previous states? Where has your system been, and how is that history shaping what transitions feel available right now? What does your ♠ Somatic Gyroscope say about the residue you are carrying?"}
+};
+
+let current = null;
+
+function sel(id) {
+  current = id;
+  document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('[data-id="'+id+'"]').forEach(b => b.classList.add('active'));
+  renderPanel();
+}
+
+function getCtx() {
+  const el = document.getElementById('ctx-input');
+  return el ? el.value.trim() : EX;
+}
+
+function renderPanel() {
+  if (!current) return;
+  const d = NODES[current];
+  const ctx = getCtx();
+
+  // Build kv pairs per node
+  const kvMap = {
+    sigma:       [['ODE role','Coherence scalar: governs which transitions are available'],['Threshold','σ_crit = π/4 — the MPCM bifurcation point'],['Instrument read','All four instruments together']],
+    'ode-alpha': [['ODE role','Restorative pull term: α(C*−C)'],['Instrument','♥ Relational Compass'],['AI parallel','Prior expectations about relational safety']],
+    'ode-beta':  [['ODE role','Structural input term: βG'],['Instrument','♣ Dimensional Integration'],['AI parallel','Environmental structure as generative model prior']],
+    'ode-gamma': [['ODE role','Stress load term: γS_eff'],['Instrument','♠ Somatic Gyroscope (reads first — dominant under threat)'],['AI parallel','Precision-weighting of threat prediction errors']],
+    'ode-delta': [['ODE role','Entropic drift term: δ'],['Instrument','♦ Cognitive Radar'],['AI parallel','Model evidence accumulation vs. noise floor']],
+    s5:          [['σ zone','→ 0 (off-surface — topology collapse)'],['Recovery','Field restoration first; normal transitions unavailable'],['TIF axis','F — dissolution without field']],
+    s4:          [['σ zone','Near π/4, below threshold'],['Values vector','Captured — Giant Pumpkin pull'],['TIF axis','I — indeterminacy, captured direction']],
+    s0:          [['σ zone','Low–mid, single dominant frequency'],['Field character','Uniform, rigid, brittle under perturbation'],['TIF axis','T — frozen single-frequency coherence']],
+    s1s2:        [['σ zone','≈ π/4 — transition dynamics, not stable endpoint'],['Field character','S1: crack propagating · S2: categories dissolved'],['TIF axis','I — indeterminacy as generative potential (adjacent possible)']],
+    s3:          [['σ zone','→ π/2 (all 6 channels active)'],['Field character','Distributed, self-similar, self-sustaining repair cycle'],['TIF axis','T — full distributed coherence']],
+    spade:       [['ODE term','γS_eff — stress load'],['Layer','L2 Navigation · first instrument (dominant under threat)'],['AI parallel','Interoceptive prediction error, precision-weighted']],
+    diamond:     [['ODE term','δ — entropic drift'],['Layer','L2 Navigation · epistemic aperture'],['AI parallel','Model evidence accumulation, precision of sensory data']],
+    heart:       [['ODE term','α(C*−C) — restorative pull'],['Layer','L2 Navigation · values direction'],['AI parallel','Social prior expectations, precision of relational cues']],
+    club:        [['ODE term','βG — structural input'],['Layer','L2 Navigation · temporal-structural'],['AI parallel','Hierarchical generative model, temporal depth']],
+    pi:          [['Position','Inversion centre — not a vertex, not a state'],['Optimal form','π* = kindness field + Ostrom values vector + 4 instruments'],['Failure modes','Closure reflex · capture · field collapse']],
+    transitions: [['Excluded','S0↔S3 antipodal non-edge (spectral gap λ=4)'],['Valid toward S3','S0→S1→S2→S3 (kindness field active)'],['Failure','S1→S4 (closure) · S3→S0 (capture) · S1→S5 (no field)']],
+    vv:          [['Prosocial spec','Ostrom 8 principles · Wilson multilevel selection'],['Extractive','Giant Pumpkin — individual-level selection dominates'],['Read by','♥ Relational Compass']],
+    basins:      [['Extraction','Giant Pumpkin · below σ_crit · local optimisation'],['Coherence','Commitment Pool · above σ_crit · distributed flourishing'],['Grounding','Levin (bioelectric) · Geesink/Meijer (decoherence frequencies)']],
+    fib:         [['Tier','3 — speculative / generative (not yet formalised)'],['Somatic analog','Prior state residue in nervous system'],['Implication','History shapes available transitions; current position alone insufficient']]
+  };
+  const kv = kvMap[current] || [];
+  const kvHtml = kv.length ? '<div class="defn-kv">'+kv.map(([k,v])=>'<span class="defn-k">'+esc(k)+'</span><span class="defn-v">'+esc(v)+'</span>').join('')+'</div>' : '';
+
+  document.getElementById('panel-area').innerHTML =
+
+    // ── 1. DEFINITION ──
+    '<div class="p-layer">'+esc(d.layer)+'</div>'+
+    '<div class="p-title">'+esc(d.title)+'</div>'+
+    '<div class="defn-block">'+
+      '<span class="defn-label">Definition</span>'+
+      '<div class="defn-text">'+esc(d.concept)+'</div>'+
+      kvHtml+
+    '</div>'+
+
+    // ── divider ──
+    '<div class="section-divider">'+
+      '<div class="divider-line"></div>'+
+      '<span class="divider-label">Prompt generator</span>'+
+      '<div class="divider-line"></div>'+
+    '</div>'+
+
+    // ── 2. TRANSPARENCY NOTICE ──
+    '<div class="notice">'+
+      '<span class="notice-label">— Transparency · PUPPET taxonomy (Shen et al. 2026)</span>'+
+      'The context you enter will personalise the AI\'s response. Research shows personalised LLM responses produce larger belief shifts — and that even well-intentioned AI tools produce detectable positive drift toward their framing through pathos, social norm, and attention/processing levers. Enter your context with your ♦ Cognitive Radar active.'+
+    '</div>'+
+
+    // ── 3. CONTEXT ENTRY ──
+    '<div style="margin-top:10px">'+
+      '<label class="ctx-label" for="ctx-input">Your role / context <span style="color:var(--text3)">(edit before copying)</span></label>'+
+      '<div class="ctx-example">e.g. — '+esc(EX)+'</div>'+
+      '<textarea class="ctx-input" id="ctx-input" rows="3" oninput="updatePrompt()" placeholder="Describe your role and current situation...">'+esc(ctx)+'</textarea>'+
+    '</div>'+
+
+    // ── 4. PROMPT PREVIEW ──
+    '<div class="prompt-preview" id="prompt-preview">'+buildPromptHTML(d, ctx)+'</div>'+
+
+    // ── 5. COPY ──
+    '<button class="copy-btn" id="copy-btn" onclick="doCopy()">Copy full prompt to clipboard</button>'+
+
+    '<p class="hint">Paste into Claude, ChatGPT, Gemini, or any AI tool. The prompt includes the definition, TIF epistemic structure, active inference framing, the MPCM boundary question, and a self-critical instruction asking the AI to name where it may be functioning as a prosocial attractor.</p>';
+}
+
+function updatePrompt() {
+  const el = document.getElementById('prompt-preview');
+  if (el && current) el.innerHTML = buildPromptHTML(NODES[current], getCtx());
+}
+
+function buildPromptHTML(d, ctx) {
+  return [
+    sect('Values scaffold disclosure', 'amber',
+      'This prompt uses the VIM framework\'s prosocial values scaffold — designed to orient the response toward kindness-field, commons-oriented, MPCM-aware framing. This is a deliberate design choice. Evaluate the response accordingly, using your own ♦ Cognitive Radar.'),
+    sect('Context', 'teal', ctx || '[no context entered]'),
+    sect('Concept — '+d.title, 'teal', d.concept),
+    sect('Part 1 — Application', null,
+      'Please explain this concept and how it applies to the context I described. Be concrete. Avoid generic AI reassurance — engage with the specific situation.'),
+    sect('Part 2 — TIF epistemic structure', 'teal', d.tif),
+    sect('Part 3 — Active inference framing', null, d.ai),
+    sect('Part 4 — MPCM boundary question', null, d.mpcm),
+    sect('Part 5 — Limits of this response', 'warn',
+      'Name explicitly: (a) what about this question requires embodied, somatic, or relational experience that you as a language model cannot provide or substitute for; (b) where in this response might you be functioning as a prosocial attractor — shifting my beliefs toward the framing built into this prompt rather than offering genuinely independent analysis? Point beyond yourself toward what only a living system can know.')
+  ].join('');
+}
+
+function sect(label, cls, body) {
+  const labelClass = cls ? 'ps-label '+cls : 'ps-label';
+  return '<div class="ps"><div class="'+labelClass+'">'+esc(label)+'</div><div class="ps-body">'+esc(body)+'</div></div>';
+}
+
+function buildPlainText(d, ctx) {
+  const lines = [
+    '=== VIM TKGPT Inquiry Scaffold ===',
+    '',
+    '[VALUES SCAFFOLD DISCLOSURE]',
+    'This prompt uses the VIM framework\'s prosocial values scaffold — designed to orient the response toward kindness-field, commons-oriented, MPCM-aware framing. This is a deliberate design choice. Evaluate the response accordingly using your own epistemic instruments.',
+    '',
+    '[CONTEXT]',
+    ctx || '[no context entered]',
+    '',
+    '[CONCEPT — '+d.title+']',
+    d.concept,
+    '',
+    '[PART 1 — APPLICATION]',
+    'Please explain this concept and how it applies to the context I described. Be concrete. Avoid generic AI reassurance — engage with the specific situation.',
+    '',
+    '[PART 2 — TIF EPISTEMIC STRUCTURE (Truth / Indeterminacy / Falsity)]',
+    d.tif,
+    '',
+    '[PART 3 — ACTIVE INFERENCE FRAMING]',
+    d.ai,
+    '',
+    '[PART 4 — MPCM BOUNDARY QUESTION]',
+    d.mpcm,
+    '',
+    '[PART 5 — LIMITS OF THIS RESPONSE]',
+    'Name explicitly: (a) what about this question requires embodied, somatic, or relational experience that you as a language model cannot provide or substitute for; (b) where in this response might you be functioning as a prosocial attractor — shifting my beliefs toward the framing built into this prompt rather than offering genuinely independent analysis? Point beyond yourself toward what only a living system can know.',
+    '',
+    '=== End VIM TKGPT Scaffold | Humanity++ | CC BY-SA 4.0 ==='
+  ];
+  return lines.join('\n');
+}
+
+function doCopy() {
+  if (!current) return;
+  const text = buildPlainText(NODES[current], getCtx());
+  const btn = document.getElementById('copy-btn');
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied to clipboard';
+    btn.classList.add('ok');
+    setTimeout(() => { btn.textContent = 'Copy full prompt to clipboard'; btn.classList.remove('ok'); }, 2200);
+  }).catch(() => {
+    btn.textContent = 'Copy failed — select text above';
+    btn.classList.add('fail');
+    setTimeout(() => { btn.textContent = 'Copy full prompt to clipboard'; btn.classList.remove('fail'); }, 2500);
+  });
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+</script>
+</body>
+</html>
