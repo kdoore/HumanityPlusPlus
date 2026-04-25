@@ -1,0 +1,278 @@
+
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+canvas { display: block; position: absolute; top: 0; left: 0; }
+#wrap { position: relative; width: 100%; height: 520px; background: #070d0a; overflow: hidden; }
+#ui {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 14px 24px 18px;
+  background: linear-gradient(to top, rgba(4,8,6,0.97) 0%, rgba(4,8,6,0.0) 100%);
+  display: flex; flex-direction: column; gap: 10px;
+  pointer-events: none;
+}
+#state-box {
+  text-align: center;
+  font-family: 'Space Mono', 'Courier New', monospace;
+  pointer-events: none;
+}
+#state-name {
+  font-size: 15px; font-weight: 700; letter-spacing: 0.16em;
+  text-transform: uppercase; color: #1dc97a;
+  transition: color 0.7s, text-shadow 0.7s;
+  text-shadow: 0 0 18px rgba(29,200,120,0.55);
+}
+#state-desc {
+  font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase;
+  color: rgba(160,210,180,0.72); margin-top: 3px;
+  transition: color 0.7s;
+}
+#slider-row {
+  display: flex; align-items: center; gap: 12px;
+  pointer-events: auto;
+}
+.pole-label {
+  font-family: 'Space Mono', 'Courier New', monospace;
+  font-size: 9px; letter-spacing: 0.11em; text-transform: uppercase;
+  line-height: 1.5; white-space: nowrap; min-width: 80px;
+  transition: color 0.7s;
+}
+#lbl-extract { color: rgba(220,90,50,0.75); text-align: right; }
+#lbl-kindness { color: rgba(29,190,110,0.75); }
+#field-slider {
+  -webkit-appearance: none; appearance: none;
+  flex: 1; height: 2px; border-radius: 2px; outline: none; cursor: pointer;
+  background: linear-gradient(to right, rgba(200,70,40,0.45) 0%, rgba(100,100,100,0.3) 50%, rgba(29,158,117,0.55) 100%);
+  pointer-events: auto;
+}
+#field-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+  background: #b8c8b8; border: 1px solid rgba(255,255,255,0.2); cursor: pointer;
+}
+#watermark {
+  position: absolute; top: 12px; right: 16px;
+  font-family: 'Space Mono', monospace; font-size: 8px;
+  letter-spacing: 0.14em; color: rgba(40,80,60,0.22);
+  text-transform: uppercase; pointer-events: none;
+}
+</style>
+
+<div id="wrap">
+<canvas id="c"></canvas>
+<div id="ui">
+  <div id="state-box">
+    <div id="state-name">S1 · disequilibration</div>
+    <div id="state-desc">both attractors active — the field is contested</div>
+  </div>
+  <div id="slider-row">
+    <div class="pole-label" id="lbl-extract">extractive<br>attractor</div>
+    <input type="range" id="field-slider" min="0" max="100" value="30" step="1">
+    <div class="pole-label" id="lbl-kindness">kindness<br>attractor</div>
+  </div>
+</div>
+<div id="watermark">Sophia · Humanity++ · VIM</div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const wrap = document.getElementById('wrap');
+const slider = document.getElementById('field-slider');
+const stateName = document.getElementById('state-name');
+const stateDesc = document.getElementById('state-desc');
+
+let W, H, GP, CP;
+
+const STATES = [
+  { thresh: 0.20, name: 'S4 · reversion', desc: 'values vector captured — the pullback attractor holds', nameColor: '#d84828', descColor: 'rgba(220,140,100,0.72)', shadowColor: 'rgba(216,72,40,0.45)' },
+  { thresh: 0.40, name: 'S1 · disequilibration', desc: 'both attractors active — the field is contested', nameColor: '#c8a040', descColor: 'rgba(200,170,100,0.72)', shadowColor: 'rgba(200,160,40,0.4)' },
+  { thresh: 0.52, name: 'S2 · vacant place', desc: 'neither the old symmetry nor the new — the field is open', nameColor: '#8ab8a8', descColor: 'rgba(160,200,180,0.72)', shadowColor: 'rgba(120,190,160,0.35)' },
+  { thresh: 0.68, name: 'T23 · nucleation', desc: 'the first node settles — cascade beginning', nameColor: '#28c885', descColor: 'rgba(80,210,160,0.72)', shadowColor: 'rgba(40,200,130,0.45)' },
+  { thresh: 1.01, name: 'S3 · holarchic flow', desc: 'the only attractor that sustains itself — the pullback holds', nameColor: '#1dde8a', descColor: 'rgba(100,230,170,0.8)', shadowColor: 'rgba(29,220,130,0.6)' },
+];
+
+function resize() {
+  W = wrap.offsetWidth; H = wrap.offsetHeight;
+  canvas.width = W; canvas.height = H;
+  GP = { x: W * 0.27, y: H * 0.44 };
+  CP = { x: W * 0.73, y: H * 0.44 };
+}
+resize();
+window.addEventListener('resize', resize);
+
+let kf = 0.30;
+
+slider.addEventListener('input', () => {
+  kf = slider.value / 100;
+  updateState();
+});
+
+function updateState() {
+  for (const s of STATES) {
+    if (kf <= s.thresh) {
+      stateName.textContent = s.name;
+      stateName.style.color = s.nameColor;
+      stateName.style.textShadow = `0 0 18px ${s.shadowColor}`;
+      stateDesc.textContent = s.desc;
+      stateDesc.style.color = s.descColor;
+      break;
+    }
+  }
+}
+updateState();
+
+const N = 75;
+const agents = [];
+function rand(a, b) { return a + Math.random() * (b - a); }
+
+function makeAgent() {
+  const r = Math.random();
+  const type = r < 0.3 ? 'kindness' : r < 0.56 ? 'extract' : 'neutral';
+  return {
+    x: rand(60, W - 60), y: rand(50, H - 100),
+    vx: rand(-0.3, 0.3), vy: rand(-0.3, 0.3),
+    ki: type === 'kindness' ? rand(0.72, 1.0) : type === 'extract' ? rand(0.0, 0.22) : rand(0.32, 0.62),
+    cc: rand(0.4, 0.88),
+    phase: rand(0, Math.PI * 2), pspd: rand(0.016, 0.03),
+    sz: rand(3.2, 6.0), trail: [], type
+  };
+}
+for (let i = 0; i < N; i++) agents.push(makeAgent());
+
+let simT = 0;
+
+function curl(x, y, t) {
+  const eps = 0.5;
+  const n = (px, py) =>
+    Math.sin(px * 1.2 + t * 0.17) * Math.cos(py * 0.85 + t * 0.11) +
+    Math.sin(px * 0.65 + py * 1.05 + t * 0.08) * 0.5 +
+    Math.sin(px * 2.0 - py * 0.55 + t * 0.21) * 0.28;
+  return {
+    fx: (n(x, y + eps) - n(x, y - eps)) / (2 * eps) * 0.42,
+    fy: -(n(x + eps, y) - n(x - eps, y)) / (2 * eps) * 0.42
+  };
+}
+
+function pull(ax, ay, bx, by, str) {
+  const dx = bx - ax, dy = by - ay, d = Math.sqrt(dx*dx+dy*dy)+1;
+  const f = str * Math.min(1, 100/d);
+  return { fx: dx/d*f, fy: dy/d*f };
+}
+
+function agColor(ki, cc, a) {
+  const r = Math.round(ki<0.5 ? 152+cc*22-ki*2*105 : (1-ki)*2*26+8+cc*14);
+  const g = Math.round(ki<0.5 ? 36+cc*10+ki*2*52 : 70+ki*58+cc*62);
+  const b = Math.round(ki<0.5 ? 10+cc*7+ki*2*44 : 46+cc*36);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function stepAgent(ag) {
+  const cv = curl(ag.x, ag.y, simT);
+  const eStr = (1 - ag.ki) * (0.58 - kf * 0.46 + (1-kf) * 0.22);
+  const kStr = ag.ki * (0.52 - (1-kf) * 0.28) + kf * 0.07;
+  const gp = pull(ag.x, ag.y, GP.x, GP.y, eStr);
+  const cp = pull(ag.x, ag.y, CP.x, CP.y, kStr);
+  if (ag.type === 'neutral') {
+    ag.ki += (kf - ag.ki) * 0.0055 * (0.8 + Math.random() * 0.4);
+    ag.ki = Math.max(0.28, Math.min(0.65, ag.ki + (kf > 0.55 ? 0.0007 : -0.0005)));
+  }
+  const resp = 0.48 + ag.cc * 0.68;
+  ag.vx = ag.vx * 0.944 + (cv.fx + gp.fx + cp.fx) * 0.022 * resp;
+  ag.vy = ag.vy * 0.944 + (cv.fy + gp.fy + cp.fy) * 0.022 * resp;
+  const spd = Math.sqrt(ag.vx*ag.vx+ag.vy*ag.vy);
+  const mx = 1.5 + ag.cc * 0.75;
+  if (spd > mx) { ag.vx *= mx/spd; ag.vy *= mx/spd; }
+  if (spd < 0.04) { ag.vx += rand(-0.07,0.07); ag.vy += rand(-0.07,0.07); }
+  ag.phase += ag.pspd;
+  ag.trail.push({x:ag.x, y:ag.y, ki:ag.ki, cc:ag.cc});
+  const mx2 = Math.floor(16 + ag.cc * 30);
+  if (ag.trail.length > mx2) ag.trail.shift();
+  ag.x += ag.vx; ag.y += ag.vy;
+  const m = 38;
+  if (ag.x < -m) ag.x = W+m; if (ag.x > W+m) ag.x = -m;
+  if (ag.y < -m) ag.y = H+m; if (ag.y > H+m) ag.y = -m;
+}
+
+function drawAgent(ag) {
+  const tr = ag.trail;
+  for (let i = 1; i < tr.length; i++) {
+    const frac = i/tr.length;
+    ctx.beginPath(); ctx.moveTo(tr[i-1].x, tr[i-1].y); ctx.lineTo(tr[i].x, tr[i].y);
+    ctx.strokeStyle = agColor(tr[i].ki, tr[i].cc, frac*frac*0.32*tr[i].cc);
+    ctx.lineWidth = frac*1.7; ctx.stroke();
+  }
+  const pulse = 0.88 + 0.12*Math.sin(ag.phase);
+  const sz = ag.sz * pulse * (0.52 + ag.cc * 0.72);
+  const glowR = sz * (1.55 + ag.ki * 0.65 + ag.cc * 0.75);
+  const rr = Math.round(ag.ki<0.5 ? 152-ag.ki*2*105 : (1-ag.ki)*2*26+8);
+  const gg = Math.round(ag.ki<0.5 ? 36+ag.ki*2*52 : 70+ag.ki*58);
+  const bb = Math.round(ag.ki<0.5 ? 10+ag.ki*2*44 : 46);
+  const g = ctx.createRadialGradient(ag.x,ag.y,0,ag.x,ag.y,glowR);
+  g.addColorStop(0,`rgba(${rr},${gg},${bb},${0.18*ag.cc})`);
+  g.addColorStop(0.5,`rgba(${rr},${gg},${bb},${0.06*ag.cc})`);
+  g.addColorStop(1,`rgba(${rr},${gg},${bb},0)`);
+  ctx.beginPath(); ctx.arc(ag.x,ag.y,glowR,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
+  const vl = Math.sqrt(ag.vx*ag.vx+ag.vy*ag.vy);
+  const angle = vl > 0.01 ? Math.atan2(ag.vy,ag.vx) : ag.phase*0.04;
+  ctx.save(); ctx.translate(ag.x,ag.y); ctx.rotate(angle);
+  ctx.beginPath();
+  ctx.moveTo(sz*1.62,0);
+  ctx.bezierCurveTo(sz*0.5,-sz*0.38,-sz*0.52,-sz*0.26,-sz*0.92,0);
+  ctx.bezierCurveTo(-sz*0.52,sz*0.26,sz*0.5,sz*0.38,sz*1.62,0);
+  ctx.fillStyle = agColor(ag.ki,ag.cc,0.70+ag.cc*0.28); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-sz*0.92,0); ctx.lineTo(-sz*1.75,-sz*0.44);
+  ctx.lineTo(-sz*1.32,0); ctx.lineTo(-sz*1.75,sz*0.44); ctx.closePath();
+  ctx.fillStyle = agColor(ag.ki,ag.cc,0.35); ctx.fill();
+  ctx.restore();
+}
+
+function drawBasins() {
+  const gpStr = Math.max(0, 1 - kf * 1.25);
+  const cpStr = Math.min(1, kf * 1.35);
+  [[GP, false, gpStr], [CP, true, cpStr]].forEach(([pos, isK, str]) => {
+    if (str < 0.04) return;
+    const r = 145;
+    const bg = ctx.createRadialGradient(pos.x,pos.y,0,pos.x,pos.y,r);
+    if (isK) {
+      bg.addColorStop(0,`rgba(29,158,117,${0.14*str})`);
+      bg.addColorStop(0.5,`rgba(29,158,117,${0.05*str})`);
+      bg.addColorStop(1,`rgba(29,158,117,0)`);
+    } else {
+      bg.addColorStop(0,`rgba(200,60,28,${0.12*str})`);
+      bg.addColorStop(0.5,`rgba(200,60,28,${0.04*str})`);
+      bg.addColorStop(1,`rgba(200,60,28,0)`);
+    }
+    ctx.beginPath(); ctx.arc(pos.x,pos.y,r,0,Math.PI*2); ctx.fillStyle=bg; ctx.fill();
+    ctx.font = '7px Space Mono, Courier New, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = isK ? `rgba(29,158,117,${str*0.30})` : `rgba(200,70,40,${str*0.25})`;
+    ctx.fillText(isK ? 'COMMITMENT POOL' : 'GIANT PUMPKIN', pos.x, pos.y+6);
+  });
+}
+
+function drawMPCM() {
+  const midX = W * 0.5;
+  const nearCenter = Math.abs(kf - 0.5);
+  const alpha = nearCenter < 0.12 ? 0.22 : 0.08;
+  const kfBoost = Math.max(0, kf - 0.55) / 0.45;
+  const grad = ctx.createLinearGradient(0, 60, 0, H - 90);
+  grad.addColorStop(0,'rgba(29,158,117,0)');
+  grad.addColorStop(0.25,`rgba(29,158,117,${alpha + kfBoost*0.14})`);
+  grad.addColorStop(0.75,`rgba(29,158,117,${alpha + kfBoost*0.14})`);
+  grad.addColorStop(1,'rgba(29,158,117,0)');
+  ctx.beginPath(); ctx.moveTo(midX, 60); ctx.lineTo(midX, H - 90);
+  ctx.strokeStyle = grad; ctx.lineWidth = 0.5 + kfBoost*1.1;
+  ctx.setLineDash([4,6]); ctx.stroke(); ctx.setLineDash([]);
+}
+
+function frame() {
+  ctx.fillStyle = 'rgba(7,13,10,0.20)';
+  ctx.fillRect(0, 0, W, H);
+  drawBasins();
+  drawMPCM();
+  for (const ag of agents) { stepAgent(ag); drawAgent(ag); }
+  simT += 0.016;
+  requestAnimationFrame(frame);
+}
+frame();
+</script>
