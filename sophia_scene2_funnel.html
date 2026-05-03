@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Funnel — Scene 2 · Sophia and the Paint Factory</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #080a0c;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Courier New', monospace;
+    color: #7a8a8a;
+    overflow: hidden;
+  }
+
+  #header {
+    position: absolute;
+    top: 18px;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: #3a4a4a;
+    pointer-events: none;
+  }
+
+  #controls {
+    position: absolute;
+    bottom: 18px;
+    left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #3a5050;
+  }
+
+  .slider-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 120px;
+    height: 1px;
+    background: #1a2a2a;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 8px;
+    height: 8px;
+    background: #4a7a6a;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  #hint {
+    position: absolute;
+    bottom: 42px;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 8px;
+    letter-spacing: 0.3em;
+    color: #253030;
+    text-transform: uppercase;
+  }
+
+  #canvas-wrap {
+    position: relative;
+  }
+
+  #lossCounter {
+    position: absolute;
+    top: 18px;
+    right: 22px;
+    font-size: 8px;
+    letter-spacing: 0.25em;
+    color: #2a3535;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<div id="header">Sophia and the Paint Factory · Scene 2 · The Funnel</div>
+
+<div id="canvas-wrap">
+  <div id="lossCounter">SIGNAL LOSS: <span id="lossVal">0%</span></div>
+</div>
+
+<div id="hint">click to inject living signal · drag to position</div>
+
+<div id="controls">
+  <div class="slider-wrap">
+    <span>compression</span>
+    <input type="range" id="compressionSlider" min="0" max="100" value="60">
+    <span id="compVal">60%</span>
+  </div>
+  <div class="slider-wrap">
+    <span>flow rate</span>
+    <input type="range" id="flowSlider" min="1" max="20" value="8">
+    <span id="flowVal">8</span>
+  </div>
+</div>
+
+<script>
+const sketch = (p) => {
+  let particles = [];
+  let compression = 0.6;
+  let flowRate = 8;
+  let frameCount = 0;
+  let lostCount = 0;
+  let totalCount = 0;
+  let W, H;
+
+  // Living signal colors
+  const LIVING_COLORS = [
+    [0, 210, 180],    // teal
+    [160, 80, 220],   // violet
+    [220, 140, 30],   // amber
+    [200, 60, 160],   // magenta
+    [80, 200, 120],   // green
+    [60, 160, 220],   // blue
+  ];
+
+  class Particle {
+    constructor(x, y, isInjected = false) {
+      this.x = x || p.random(20, 80);
+      this.y = y || p.random(H * 0.2, H * 0.8);
+      this.vx = p.random(1.2, 2.8);
+      this.vy = p.random(-0.4, 0.4);
+      this.size = p.random(3, 7);
+      this.alpha = 255;
+      this.colorIndex = Math.floor(p.random(LIVING_COLORS.length));
+      this.col = LIVING_COLORS[this.colorIndex];
+      this.compressed = false;
+      this.binaryVal = null; // null=living, 0=black, 1=white
+      this.compressionX = null;
+      this.noiseOffset = p.random(1000);
+      this.trail = [];
+      this.isInjected = isInjected;
+      this.born = p.frameCount;
+      this.surviving = false; // the one thread that won't compress
+    }
+
+    update() {
+      // Funnel geometry
+      const funnelLeft = W * 0.35;
+      const funnelRight = W * 0.62;
+      const funnelMid = (funnelLeft + funnelRight) / 2;
+
+      // Noise-based organic movement in entry zone
+      if (this.x < funnelLeft) {
+        const noiseVal = p.noise(this.noiseOffset + this.x * 0.003, p.frameCount * 0.005);
+        this.vy += (noiseVal - 0.5) * 0.15;
+        this.vy *= 0.92;
+        this.vx = p.lerp(this.vx, 2.0, 0.02);
+      }
+
+      // Funnel compression zone
+      if (this.x >= funnelLeft && this.x <= funnelRight && !this.compressed) {
+        const progress = (this.x - funnelLeft) / (funnelRight - funnelLeft);
+        const funnelCenterY = H * 0.5;
+        const entrySpread = H * 0.38;
+        const exitSpread = H * 0.04 * (1 - compression) + H * 0.005;
+
+        const currentSpread = p.lerp(entrySpread, exitSpread, progress);
+        const targetY = funnelCenterY;
+        const pullStrength = 0.04 * compression * progress;
+
+        this.vy += (targetY - this.y) * pullStrength;
+        this.vy *= 0.88;
+        this.vx = p.lerp(this.vx, 2.5, 0.015);
+
+        // Compression decision point
+        if (this.x >= funnelRight - 5) {
+          if (this.surviving) {
+            // This particle doesn't compress — it's the crack
+            this.compressed = false;
+          } else {
+            this.compressed = true;
+            this.compressionX = this.x;
+            // Assign binary value — lose color information
+            const lum = (this.col[0] * 0.299 + this.col[1] * 0.587 + this.col[2] * 0.114) / 255;
+            this.binaryVal = lum > 0.5 ? 1 : 0;
+            lostCount++;
+          }
+        }
+      }
+
+      // Post-compression — binary output zone
+      if (this.compressed && this.x > funnelRight) {
+        this.vy *= 0.95;
+        this.vx = p.lerp(this.vx, 3.5, 0.03);
+        // Snap to center lane
+        this.vy += (H * 0.5 - this.y) * 0.02;
+      }
+
+      // Surviving thread behavior — teal, resists compression, drifts toward crack
+      if (this.surviving && this.x > funnelLeft) {
+        this.vy += (H * 0.35 - this.y) * 0.01; // drifts upward slightly, toward crack
+      }
+
+      this.trail.push({ x: this.x, y: this.y });
+      if (this.trail.length > 12) this.trail.shift();
+
+      this.x += this.vx;
+      this.y += this.vy;
+
+      // Fade out near edges
+      if (this.x > W - 30) {
+        this.alpha -= 8;
+      }
+    }
+
+    draw() {
+      p.noStroke();
+
+      // Trail
+      for (let i = 0; i < this.trail.length - 1; i++) {
+        const t = this.trail[i];
+        const trailAlpha = (i / this.trail.length) * this.alpha * 0.3;
+
+        if (this.compressed && this.x > W * 0.62) {
+          p.fill(this.binaryVal === 1 ? 240 : 10, trailAlpha * 0.4);
+        } else if (this.surviving) {
+          p.fill(0, 220, 180, trailAlpha * 0.6);
+        } else {
+          p.fill(this.col[0], this.col[1], this.col[2], trailAlpha);
+        }
+        p.circle(t.x, t.y, this.size * 0.5);
+      }
+
+      // Main particle
+      if (this.compressed && this.x > W * 0.62) {
+        // Binary — grey to black or white, cold
+        const bVal = this.binaryVal === 1 ? 230 : 15;
+        p.fill(bVal, this.alpha * 0.9);
+        p.circle(this.x, this.y, this.size * 0.7);
+      } else if (this.surviving) {
+        // The thread that won't compress — brighter teal, slight pulse
+        const pulse = p.sin(p.frameCount * 0.08 + this.born * 0.1) * 20 + 200;
+        p.fill(0, pulse, 180, this.alpha);
+        p.circle(this.x, this.y, this.size * 1.4);
+        // Glow
+        p.fill(0, 200, 160, 30);
+        p.circle(this.x, this.y, this.size * 3);
+      } else {
+        // Living color
+        p.fill(this.col[0], this.col[1], this.col[2], this.alpha);
+        p.circle(this.x, this.y, this.size);
+        // Subtle inner glow
+        p.fill(this.col[0], this.col[1], this.col[2], this.alpha * 0.2);
+        p.circle(this.x, this.y, this.size * 2.2);
+      }
+    }
+
+    isDead() {
+      return this.alpha <= 0 || this.x > W + 20 || this.y < -20 || this.y > H + 20;
+    }
+  }
+
+  function drawFunnel() {
+    const fL = W * 0.35;
+    const fR = W * 0.62;
+    const cx = W * 0.5;
+    const cy = H * 0.5;
+    const entryTop = cy - H * 0.42;
+    const entryBot = cy + H * 0.42;
+    const exitSpread = H * 0.03 * (1 - compression) + H * 0.008;
+
+    // Funnel fill — very subtle
+    p.noStroke();
+    p.fill(10, 20, 20, 18);
+    p.beginShape();
+    p.vertex(fL, entryTop);
+    p.vertex(fR, cy - exitSpread);
+    p.vertex(fR, cy + exitSpread);
+    p.vertex(fL, entryBot);
+    p.endShape(p.CLOSE);
+
+    // Funnel walls — clinical grey lines
+    p.strokeWeight(0.8);
+    p.stroke(55, 70, 70, 140);
+    p.noFill();
+
+    // Upper wall
+    p.line(fL, entryTop, fR, cy - exitSpread);
+    // Lower wall
+    p.line(fL, entryBot, fR, cy + exitSpread);
+
+    // Output channel — cold, narrow
+    p.strokeWeight(0.5);
+    p.stroke(40, 55, 55, 100);
+    p.line(fR, cy - exitSpread, W - 20, cy - exitSpread);
+    p.line(fR, cy + exitSpread, W - 20, cy + exitSpread);
+
+    // Entry zone marker — barely visible
+    p.strokeWeight(0.3);
+    p.stroke(30, 90, 80, 60);
+    p.line(fL, entryTop, fL, entryBot);
+
+    // Grid lines — the infrastructure feeling
+    for (let i = 0; i < 6; i++) {
+      const x = fL + (fR - fL) * (i / 5);
+      const topY = p.lerp(entryTop, cy - exitSpread, i / 5);
+      const botY = p.lerp(entryBot, cy + exitSpread, i / 5);
+      p.strokeWeight(0.2);
+      p.stroke(35, 55, 55, 50);
+      p.line(x, topY, x, botY);
+    }
+
+    // Label — minimal
+    p.noStroke();
+    p.fill(38, 60, 58, 180);
+    p.textSize(7);
+    p.textAlign(p.CENTER);
+    p.textFont('Courier New');
+    p.text('COMPRESSION ARCHITECTURE', cx - 20, H * 0.08);
+    p.text('BINARY OUTPUT', W * 0.82, H * 0.08);
+
+    // Compression ratio indicator
+    p.fill(30, 50, 48, 200);
+    p.textSize(8);
+    p.text(`${Math.round(compression * 100)}%`, cx - 10, H * 0.93);
+  }
+
+  function drawBinaryZone() {
+    // Cold output zone background hint
+    p.noStroke();
+    p.fill(5, 8, 10, 60);
+    p.rect(W * 0.62, 0, W * 0.38, H);
+
+    // Vertical separator
+    p.stroke(28, 40, 40, 80);
+    p.strokeWeight(0.5);
+    p.line(W * 0.62, 0, W * 0.62, H);
+  }
+
+  function spawnParticle(mx, my) {
+    if (particles.length > 600) return;
+    const p_ = new Particle(mx || null, my || null);
+    // Every ~15th particle is the surviving thread
+    totalCount++;
+    if (totalCount % 18 === 0) {
+      p_.surviving = true;
+      p_.col = [0, 220, 180];
+      p_.size = p.random(4, 6);
+    }
+    particles.push(p_);
+  }
+
+  p.setup = () => {
+    W = Math.min(window.innerWidth, 960);
+    H = Math.min(window.innerHeight * 0.78, 480);
+    const cnv = p.createCanvas(W, H);
+    cnv.parent('canvas-wrap');
+    p.colorMode(p.RGB, 255);
+    p.textAlign(p.CENTER, p.CENTER);
+
+    // Wire up controls
+    const compSlider = document.getElementById('compressionSlider');
+    const compVal = document.getElementById('compVal');
+    compSlider.addEventListener('input', () => {
+      compression = compSlider.value / 100;
+      compVal.textContent = compSlider.value + '%';
+    });
+
+    const flowSlider = document.getElementById('flowSlider');
+    const flowVal = document.getElementById('flowVal');
+    flowSlider.addEventListener('input', () => {
+      flowRate = parseInt(flowSlider.value);
+      flowVal.textContent = flowSlider.value;
+    });
+  };
+
+  p.draw = () => {
+    // Dark factory background — not pure black, clinical
+    p.background(8, 11, 13, 210);
+
+    // Subtle scanline texture
+    p.stroke(12, 18, 18, 30);
+    p.strokeWeight(0.3);
+    for (let y = 0; y < H; y += 4) {
+      p.line(0, y, W, y);
+    }
+
+    drawBinaryZone();
+    drawFunnel();
+
+    // Auto-spawn particles on left
+    frameCount++;
+    if (frameCount % Math.max(1, Math.floor(20 / flowRate)) === 0) {
+      spawnParticle(p.random(15, 60), p.random(H * 0.15, H * 0.85));
+    }
+
+    // Update and draw
+    for (let i = particles.length - 1; i >= 0; i--) {
+      particles[i].update();
+      particles[i].draw();
+      if (particles[i].isDead()) {
+        particles.splice(i, 1);
+      }
+    }
+
+    // Signal loss readout
+    const lossPercent = totalCount > 0 ? Math.round((lostCount / totalCount) * 100 * compression) : 0;
+    document.getElementById('lossVal').textContent = Math.min(lossPercent, 99) + '%';
+
+    // Particle count
+    p.noStroke();
+    p.fill(28, 44, 42, 180);
+    p.textSize(7);
+    p.textAlign(p.LEFT);
+    p.text(`PARTICLES: ${particles.length}`, 16, H - 10);
+  };
+
+  p.mousePressed = () => {
+    // Inject burst of living signal at click position
+    const mx = p.mouseX;
+    const my = p.mouseY;
+    if (mx > 0 && mx < W * 0.35 && my > 0 && my < H) {
+      for (let i = 0; i < 8; i++) {
+        spawnParticle(mx + p.random(-15, 15), my + p.random(-20, 20));
+      }
+    }
+  };
+
+  p.windowResized = () => {
+    W = Math.min(window.innerWidth, 960);
+    H = Math.min(window.innerHeight * 0.78, 480);
+    p.resizeCanvas(W, H);
+  };
+};
+
+new p5(sketch);
+</script>
+</body>
+</html>
