@@ -1,0 +1,216 @@
+
+<style>
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.wrap{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:16px;padding:8px 0;align-items:start}
+.stack{display:flex;flex-direction:column-reverse;gap:6px}
+.layer{border-radius:8px;border:0.5px solid var(--color-border-tertiary);overflow:hidden}
+.layer-hd{padding:8px 12px 6px;display:flex;align-items:baseline;gap:8px}
+.layer-num{font-size:11px;font-weight:500;padding:2px 7px;border-radius:4px;flex-shrink:0}
+.layer-title{font-size:13px;font-weight:500;color:var(--color-text-primary)}
+.layer-sub{font-size:11px;color:var(--color-text-secondary);margin-top:1px}
+.layer-body{display:flex;flex-wrap:wrap;gap:6px;padding:6px 10px 10px}
+.node-btn{border:none;cursor:pointer;border-radius:6px;padding:6px 10px;text-align:left;font-family:inherit;transition:opacity 0.15s}
+.node-btn:hover{opacity:0.82}
+.node-btn.active{outline:2px solid var(--color-border-primary)}
+.node-title{font-size:12px;font-weight:500;display:block;margin-bottom:2px}
+.node-sub{font-size:11px;display:block;opacity:0.8}
+.conn{display:flex;align-items:center;gap:6px;padding:0 12px;height:22px}
+.conn-line{flex:1;height:1px;border-top:1px dashed var(--color-border-tertiary)}
+.conn-label{font-size:10px;color:var(--color-text-tertiary)}
+.panel{border:0.5px solid var(--color-border-tertiary);border-radius:8px;padding:14px;background:var(--color-background-secondary);min-height:240px}
+.panel-empty{color:var(--color-text-tertiary);font-size:12px;line-height:1.6;padding-top:4px}
+.panel-title{font-size:14px;font-weight:500;color:var(--color-text-primary);margin-bottom:4px}
+.panel-layer{font-size:10px;color:var(--color-text-tertiary);margin-bottom:10px}
+.panel-body{font-size:12px;color:var(--color-text-secondary);line-height:1.65}
+.panel-body p{margin:0 0 8px}
+.panel-body p:last-child{margin:0}
+.panel-kv{display:grid;grid-template-columns:auto 1fr;gap:3px 8px;font-size:11px;margin-top:10px}
+.panel-k{color:var(--color-text-tertiary);white-space:nowrap}
+.panel-v{color:var(--color-text-secondary)}
+.ask-btn{margin-top:12px;font-size:11px;padding:5px 10px;width:100%}
+</style>
+
+<h2 class="sr-only">VIM framework ontological taxonomy — interactive. Four layers stacked bottom to top: substrate, configuration, navigation, trajectory. Click any node to see its definition in the panel.</h2>
+
+<div class="wrap">
+<div class="stack" id="stack">
+
+  <!-- L0: SUBSTRATE (bottom) -->
+  <div class="layer" style="background:#EEEDFE;border-color:#AFA9EC">
+    <div class="layer-hd">
+      <span class="layer-num" style="background:#AFA9EC;color:#26215C">L0</span>
+      <div>
+        <div class="layer-title" style="color:#26215C">Substrate</div>
+        <div class="layer-sub" style="color:#534AB7">Field coherence · prior condition · what Levin and Geesink/Meijer measure</div>
+      </div>
+    </div>
+    <div class="layer-body">
+      <button class="node-btn" style="background:#CECBF6;color:#26215C" data-id="sigma" onclick="show('sigma')">
+        <span class="node-title">σ (sigma)</span>
+        <span class="node-sub">field coherence scalar</span>
+      </button>
+      <button class="node-btn" style="background:#CECBF6;color:#26215C" data-id="ode-alpha" onclick="show('ode-alpha')">
+        <span class="node-title">α(C*−C)</span>
+        <span class="node-sub">restorative pull</span>
+      </button>
+      <button class="node-btn" style="background:#CECBF6;color:#26215C" data-id="ode-beta" onclick="show('ode-beta')">
+        <span class="node-title">βG</span>
+        <span class="node-sub">structural input</span>
+      </button>
+      <button class="node-btn" style="background:#CECBF6;color:#26215C" data-id="ode-gamma" onclick="show('ode-gamma')">
+        <span class="node-title">γS_eff</span>
+        <span class="node-sub">stress load</span>
+      </button>
+      <button class="node-btn" style="background:#CECBF6;color:#26215C" data-id="ode-delta" onclick="show('ode-delta')">
+        <span class="node-title">δ</span>
+        <span class="node-sub">entropic drift</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="conn"><div class="conn-line"></div><span class="conn-label">enables configurations</span><div class="conn-line"></div></div>
+
+  <!-- L1: CONFIGURATION -->
+  <div class="layer" style="background:#F1EFE8;border-color:#B4B2A9">
+    <div class="layer-hd">
+      <span class="layer-num" style="background:#B4B2A9;color:#2C2C2A">L1</span>
+      <div>
+        <div class="layer-title">Configuration</div>
+        <div class="layer-sub">Attractor states · patterns that stabilize in the field · each has a σ zone</div>
+      </div>
+    </div>
+    <div class="layer-body">
+      <button class="node-btn" style="background:#FAECE7;color:#4A1B0C" data-id="s5" onclick="show('s5')">
+        <span class="node-title">S5 — Traumatic chaos</span>
+        <span class="node-sub">off-surface · σ→0</span>
+      </button>
+      <button class="node-btn" style="background:#FAEEDA;color:#412402" data-id="s4" onclick="show('s4')">
+        <span class="node-title">S4 — Reversion</span>
+        <span class="node-sub">captured · σ near π/4</span>
+      </button>
+      <button class="node-btn" style="background:#FAEEDA;color:#412402" data-id="s0" onclick="show('s0')">
+        <span class="node-title">S0 — Frozen order</span>
+        <span class="node-sub">brittle · σ low–mid</span>
+      </button>
+      <button class="node-btn" style="background:#EAF3DE;color:#173404" data-id="s1s2" onclick="show('s1s2')">
+        <span class="node-title">S1/S2 — Threshold zone</span>
+        <span class="node-sub">transition · σ ≈ π/4</span>
+      </button>
+      <button class="node-btn" style="background:#E1F5EE;color:#04342C" data-id="s3" onclick="show('s3')">
+        <span class="node-title">S3 — Holarchic flow</span>
+        <span class="node-sub">distributed · σ→π/2</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="conn"><div class="conn-line"></div><span class="conn-label">read by instruments</span><div class="conn-line"></div></div>
+
+  <!-- L2: NAVIGATION -->
+  <div class="layer" style="background:#EAF3DE;border-color:#97C459">
+    <div class="layer-hd">
+      <span class="layer-num" style="background:#97C459;color:#173404">L2</span>
+      <div>
+        <div class="layer-title" style="color:#173404">Navigation</div>
+        <div class="layer-sub" style="color:#3B6D11">Human instruments reading field conditions · policy selecting transitions</div>
+      </div>
+    </div>
+    <div class="layer-body">
+      <button class="node-btn" style="background:#C0DD97;color:#173404" data-id="spade" onclick="show('spade')">
+        <span class="node-title">♠ Somatic Gyroscope</span>
+        <span class="node-sub">reads γS_eff · stress/ground</span>
+      </button>
+      <button class="node-btn" style="background:#C0DD97;color:#173404" data-id="diamond" onclick="show('diamond')">
+        <span class="node-title">♦ Cognitive Radar</span>
+        <span class="node-sub">reads δ · aperture/drift</span>
+      </button>
+      <button class="node-btn" style="background:#C0DD97;color:#173404" data-id="heart" onclick="show('heart')">
+        <span class="node-title">♥ Relational Compass</span>
+        <span class="node-sub">reads α(C*−C) · values pull</span>
+      </button>
+      <button class="node-btn" style="background:#C0DD97;color:#173404" data-id="club" onclick="show('club')">
+        <span class="node-title">♣ Dimensional Integration</span>
+        <span class="node-sub">reads βG · structure/time</span>
+      </button>
+      <button class="node-btn" style="background:#D3D1C7;color:#2C2C2A" data-id="pi" onclick="show('pi')">
+        <span class="node-title">π — Policy</span>
+        <span class="node-sub">not a state · selects transitions</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="conn"><div class="conn-line"></div><span class="conn-label">shapes trajectory</span><div class="conn-line"></div></div>
+
+  <!-- L3: TRAJECTORY (top) -->
+  <div class="layer" style="background:#F1EFE8;border-color:#B4B2A9">
+    <div class="layer-hd">
+      <span class="layer-num" style="background:#B4B2A9;color:#2C2C2A">L3</span>
+      <div>
+        <div class="layer-title">Trajectory</div>
+        <div class="layer-sub">Path through state space over time · shaped by field history</div>
+      </div>
+    </div>
+    <div class="layer-body">
+      <button class="node-btn" style="background:#D3D1C7;color:#2C2C2A" data-id="transitions" onclick="show('transitions')">
+        <span class="node-title">Transitions</span>
+        <span class="node-sub">σ-gated edges</span>
+      </button>
+      <button class="node-btn" style="background:#E1F5EE;color:#04342C" data-id="vv" onclick="show('vv')">
+        <span class="node-title">Values vector</span>
+        <span class="node-sub">direction of attractor pull</span>
+      </button>
+      <button class="node-btn" style="background:#FAEEDA;color:#412402" data-id="basins" onclick="show('basins')">
+        <span class="node-title">Attractor basins</span>
+        <span class="node-sub">GP · CP · above/below π/4</span>
+      </button>
+      <button class="node-btn" style="background:#D3D1C7;color:#2C2C2A" data-id="fib" onclick="show('fib')">
+        <span class="node-title">Fibonacci momentum</span>
+        <span class="node-sub">S(n) shaped by S(n−1)</span>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- PANEL -->
+<div class="panel" id="panel">
+  <p class="panel-empty">Click any node to see its definition, ODE correspondence, and relationship to other layers.</p>
+</div>
+</div>
+
+<script>
+const defs = {
+sigma:{layer:'L0 — Substrate',title:'σ — Field coherence',body:'<p>The scalar (0 to π/2) that summarises the current state of the field at any moment. σ=0 is complete decoherence — no stable pattern possible. σ=π/2 is maximum coherence — all six channels active. The MPCM bifurcation threshold sits at σ_crit = π/4.</p><p>σ is not directly observable by the agent — it is inferred through instrument readings. The four instruments are the agent\'s means of detecting σ and its rate of change.</p>',kv:[['Source','Evdokimov/Meijer (2026), Geesink/Meijer (2022)'],['Tier','2 — theoretically coherent']]},
+'ode-alpha':{layer:'L0 — Substrate',title:'α(C*−C) — Restorative pull',body:'<p>The term in the coherence ODE that pulls σ back toward its equilibrium value C*. α is the strength of that pull; C*−C is the gap between target coherence and current coherence.</p><p>In VIM: this is what the ♥ Relational Compass reads. A strong kindness field means α is high and C* is high — the system is continuously pulled toward coherence. A degraded relational field means α is low and the pull weakens.</p>',kv:[['Instrument','♥ Relational Compass'],['Active inference parallel','Prior expectations about relational safety']]},
+'ode-beta':{layer:'L0 — Substrate',title:'βG — Structural input',body:'<p>The contribution of the network\'s geometry — its governance structure, holarchic organisation, Ostrom principles — to the coherence rate of change. G represents the topology of the ecosystem the agent is embedded in.</p><p>In VIM: this is what the ♣ Dimensional Integration reads. A well-governed commons (Ostrom principles active) contributes positively to βG. An extractive institutional structure contributes negatively.</p>',kv:[['Instrument','♣ Dimensional Integration'],['Active inference parallel','Environmental structure as generative model prior']]},
+'ode-gamma':{layer:'L0 — Substrate',title:'γS_eff — Stress load',body:'<p>The thermodynamic stress term. High threat, cortisol load, or somatic dysregulation increases γS_eff, suppressing coherence regardless of relational and structural conditions. When this term dominates, the system is pulled below σ_crit regardless of values vector.</p><p>In VIM: this is what the ♠ Somatic Gyroscope reads. It is the dominant term under acute threat — which is why somatic grounding is the first instrument, not the last.</p>',kv:[['Instrument','♠ Somatic Gyroscope'],['Active inference parallel','Precision-weighting of threat prediction errors']]},
+'ode-delta':{layer:'L0 — Substrate',title:'δ — Entropic drift',body:'<p>The cost of operating in a high-noise information environment. Attention capture, epistemic scatter, and the cognitive load of filtering AI-mediated information flows all increase δ, gradually degrading σ even without acute threat.</p><p>In VIM: this is what the ♦ Cognitive Radar reads and works to reduce. The radar\'s function is to name and filter the drift — to maintain epistemic aperture against the background pull toward noise.</p>',kv:[['Instrument','♦ Cognitive Radar'],['Active inference parallel','Model evidence accumulation vs. noise floor']]},
+s5:{layer:'L1 — Configuration',title:'S5 — Traumatic chaos',body:'<p>Not a vertex on the octahedral surface. Traumatic chaos is a collapse inward — a loss of the topology itself, not a position within it. σ approaches 0: no stable pattern is possible at any scale.</p><p>Recovery from S5 cannot proceed through normal MDP transitions. Field restoration (relational trust, somatic coherence) must precede state navigation. This is the empirical claim of trauma-informed practice and what Levin\'s bioelectric field work describes at cellular scale: when the field itself dissolves, individual-level repair is insufficient.</p>',kv:[['σ zone','→ 0 (off-surface)'],['Recovery path','Field restoration first, then S4/S0 navigation'],['TIF axis','F — dissolution without field']]},
+s4:{layer:'L1 — Configuration',title:'S4 — Reversion',body:'<p>A stable attractor in the extraction basin. σ is near π/4 but the values vector is captured — the system has enough energy to navigate but all transitions pull toward Giant Pumpkin dynamics. Zero holonomy: energy is expended but no net transformation occurs.</p><p>S4 is not the same as S0. S4 has the surface appearance of activity and even apparent care — but the values vector points inward. The S3 form with S0\'s logic operating beneath.</p>',kv:[['σ zone','Near π/4, below threshold'],['Values vector','Captured — Giant Pumpkin pull'],['TIF axis','I — indeterminacy, captured direction']]},
+s0:{layer:'L1 — Configuration',title:'S0 — Frozen order',body:'<p>A stable attractor in the extraction basin. Low-to-moderate σ, single dominant frequency. High internal consistency — coherence mistaken for health, stillness mistaken for peace. The dominance hierarchy fully consolidated.</p><p>S0 is not chaotic — it is rigidly ordered. Its brittleness is invisible until perturbation. In Geesink/Meijer terms: a single-frequency eigenstate, missing the distributed 12-tone coherence of healthy biological systems.</p>',kv:[['σ zone','Low–mid, single frequency'],['Field character','Uniform, no gradient, no surprise'],['TIF axis','T — truth as frozen single-frequency coherence']]},
+s1s2:{layer:'L1 — Configuration',title:'S1/S2 — Threshold zone',body:'<p>S1 (productive disequilibration) and S2 (vacant place) share the threshold zone because they are defined by their instability, not their endpoint. They have no stable field pattern — they are the field in transition between one attractor and another.</p><p>S1 is the crack: domains of all sizes coexisting, high sensitivity to perturbation, SOC dynamics. S2 is the Neither/Nor: the old pattern has dissolved but the new has not yet stabilized. Both require the kindness field to remain generative rather than collapsing to S4 or S5.</p><p>This is why S1 and S2 cannot be shown as stable patterns in the reaction-diffusion simulation — they are transient dynamics, not endpoint configurations.</p>',kv:[['σ zone','≈ π/4 (bifurcation point)'],['Field character','Transition dynamics, not stable patterns'],['TIF axis','I — indeterminacy as generative potential']]},
+s3:{layer:'L1 — Configuration',title:'S3 — Holarchic flow',body:'<p>The maximum-coherence attractor. All six channels active, σ approaching π/2. The only attractor state that sustains itself without external forcing — the repair cycle maintains it. Ostrom\'s eight principles emerge as properties rather than imposed rules.</p><p>S3 is not a fixed endpoint. It is a dynamic field condition — the quasi-crystal state: ordered, self-similar, capable of future plasticity. The moment any instrument term degrades sufficiently, σ begins to fall. The instruments are always needed here too.</p>',kv:[['σ zone','→ π/2 (all 6 channels active)'],['Field character','Distributed, self-similar, pink noise'],['TIF axis','T — truth as full distributed coherence']]},
+spade:{layer:'L2 — Navigation',title:'♠ Somatic Gyroscope',body:'<p>The z-axis vertical reference instrument. Reads γS_eff — the somatic stress load and threat-response state. Requires movement to provide orientation information; learner disorientation is signal, not failure.</p><p>The first instrument because it is the most fundamental: under high γS_eff, all other instrument readings are suppressed. You cannot think your way to relational trust when the body is in threat response. The gyroscope must be stabilised before the other instruments can function reliably.</p><p>Element: Earth. Season: Winter. Wilber quadrant: Individual interior. Shadow: Inflation — mistaking intensity for insight.</p>',kv:[['ODE term','γS_eff — stress load'],['MPCM register','Meaning — the deepest layer'],['Active inference','Interoceptive prediction error, precision-weighted']]},
+diamond:{layer:'L2 — Navigation',title:'♦ Cognitive Radar',body:'<p>The scanning instrument. Reads δ — entropic drift and epistemic aperture. Sweeps continuously; does not lock onto a single target. Its function is to reduce δ by naming and filtering the drift — maintaining multiple hypotheses rather than premature convergence.</p><p>The TIF logic (Truth/Indeterminacy/Falsity) is this instrument\'s primary tool. Marking at least one claim as I (indeterminate) before sharing or escalating is the minimal practice. The Indeterminacy channel is not failure — it is the structured transition layer where genuine learning lives.</p><p>Element: Air. Season: Spring. Wilber quadrant: Collective exterior. Shadow: Reductive literalism.</p>',kv:[['ODE term','δ — entropic drift'],['MPCM register','Material — what is literally here'],['Active inference','Model evidence accumulation, precision of sensory data']]},
+heart:{layer:'L2 — Navigation',title:'♥ Relational Compass',body:'<p>The values-orienting instrument. Reads α(C*−C) — the restorative pull toward kindness equilibrium. The compass knows the direction of the values vector at any moment. It is the instrument that distinguishes S3 from S4: both may have similar σ levels, but the compass reads different directions.</p><p>The kindness field is not a tonal performance — it is a structural field condition. The compass reads whether that condition is present or absent. Its shadow is enmeshment: losing self in the relational field, proceeding without genuine consent in the name of harmony.</p><p>Element: Water. Season: Autumn. Wilber quadrant: Collective interior.</p>',kv:[['ODE term','α(C*−C) — restorative pull'],['MPCM register','Context — relational field'],['Active inference','Social prior expectations, prior precision of relational cues']]},
+club:{layer:'L2 — Navigation',title:'♣ Dimensional Integration',body:'<p>The temporal-structural instrument. Reads βG — the contribution of the ecosystem\'s geometry to coherence. Integrates across time scales (including the seven-generation horizon) and across holarchic levels (individual, community, institutional, civilisational).</p><p>This is the instrument that can see the Giant Pumpkin at institutional scale when individual-scale readings look healthy. It is also the instrument that tracks the repair cycle — action → consequence → integration → return to the MDP at a higher level.</p><p>Element: Fire. Season: Summer. Wilber quadrant: Lower right (collective exterior).</p>',kv:[['ODE term','βG — structural input from ecosystem'],['MPCM register','Process — how things move'],['Active inference','Hierarchical generative model, temporal depth']]},
+pi:{layer:'L2 — Navigation',title:'π — Policy',body:'<p>The decision function that uses instrument readings to select available transitions. Not a state, not a field — the orienting function that knows where all states are relative to itself. Maps onto the inversion center of the octahedral graph: equidistant from all six vertices.</p><p>π* (optimal policy) is the configuration where the kindness field is maintained, the Ostrom values vector is active, and all four instruments are functioning. It routes the system from S0 through S1→S2 toward S3. Three failure modes of π are explicitly modelled: closure reflex (S1→S4), values vector capture (S3→S0), and field absence (S1→S5).</p>',kv:[['Geometric position','Inversion center — not a vertex'],['Optimal form','π* — kindness field + Ostrom values vector + 4 instruments'],['Failure modes','Closure reflex · capture · field collapse']]},
+transitions:{layer:'L3 — Trajectory',title:'Transitions — σ-gated edges',body:'<p>The available paths between states, determined by σ relative to π/4 and by values vector direction. Not all transitions are available at all times. The octahedral geometry formalises which transitions exist (edges) and which are excluded (antipodal non-edges).</p><p>The most important excluded transition: S0 ↔ S3 share no edge. The spectral gap λ=4 represents the energy cost of crossing the antipodal axis directly. The path must traverse S1 and S2. This is not an error in the diagram — it is a structural necessity.</p>',kv:[['Valid toward S3','S0→S1, S1→S2, S2→S3 (kindness field active)'],['Failure transitions','S1→S4 (closure), S3→S0 (capture), S1→S5 (no field)'],['Excluded','S0↔S3 direct (antipodal non-edge)']]},
+vv:{layer:'L3 — Trajectory',title:'Values vector',body:'<p>The direction of the system\'s governing values — what the system is optimising toward. Determines whether high σ produces S3 (generative coherence, Commitment Pool) or a sophisticated form of S0/S4 (extractive coherence, Giant Pumpkin). Two systems can have identical σ levels and radically different values vectors.</p><p>The most empirically grounded specification of a prosocial values vector: Elinor Ostrom\'s eight design principles for commons governance, grounded evolutionarily by David Sloan Wilson\'s multilevel selection research.</p>',kv:[['Prosocial','Commitment Pool — Ostrom/Wilson grounded'],['Extractive','Giant Pumpkin — individual-level selection dominates'],['Instrument','♥ Relational Compass reads direction']]},
+basins:{layer:'L3 — Trajectory',title:'Attractor basins',body:'<p>The two gravitational regions of the state space, separated by the MPCM threshold at σ_crit = π/4. Below the threshold, the dynamics of the extraction basin pull the system toward S0, S4, and S5. Above the threshold, the coherence basin pulls toward S3.</p><p>Giant Pumpkin (extraction basin): nutrients/resources/attention flow toward a central node; network periphery is progressively depleted. Commitment Pool (coherence basin): value circulates back to contributors; the network strengthens through use.</p>',kv:[['Extraction basin','GP — below σ_crit, local optimisation'],['Coherence basin','CP — above σ_crit, distributed coherence'],['Empirical grounding','Levin (bioelectric fragmentation), Geesink/Meijer (decoherence frequencies)']]},
+fib:{layer:'L3 — Trajectory',title:'Fibonacci momentum',body:'<p>The proposal that transition probability from S(n) to the next state is a function of both S(n) and S(n−1), introducing trajectory — not just position — into the MDP. The body carries energetic residue of the prior state that shapes available transitions.</p><p>Trauma\'s signature is strong backward pull even when current state would otherwise permit forward movement: the prior state S(n−1) = S5 continues to shape transition probabilities even after σ has partially recovered. This is why field restoration must precede state navigation after S5.</p>',kv:[['Tier','3 — speculative/generative'],['Somatic analog','Prior state residue in nervous system'],['Implication','History matters, not just current position']]}
+};
+
+function show(id){
+  const d = defs[id];
+  if(!d) return;
+  document.querySelectorAll('.node-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('[data-id="'+id+'"]').forEach(b=>b.classList.add('active'));
+  const kvHtml = d.kv ? d.kv.map(([k,v])=>`<span class="panel-k">${k}</span><span class="panel-v">${v}</span>`).join('') : '';
+  document.getElementById('panel').innerHTML =
+    `<div class="panel-layer">${d.layer}</div>`+
+    `<div class="panel-title">${d.title}</div>`+
+    `<div class="panel-body">${d.body}</div>`+
+    (kvHtml ? `<div class="panel-kv">${kvHtml}</div>` : '')+
+    `<button class="ask-btn" onclick="sendPrompt('Tell me more about ${d.title} in the VIM framework')">Ask Claude more about this ↗</button>`;
+}
+</script>
