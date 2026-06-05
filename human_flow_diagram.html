@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Human Living-System Information Flow</title>
+<style>
+  body{font-family:Georgia,serif;background:#FBFAF7;color:#222;margin:0;padding:32px 24px;line-height:1.5;}
+  .wrap{max-width:760px;margin:0 auto;}
+  h1{font-size:22px;font-weight:normal;margin:0 0 4px;}
+  .sub{color:#666;font-size:14px;margin:0 0 20px;}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+  .btn{font-family:inherit;font-size:14px;padding:7px 16px;border:1px solid #888;border-radius:6px;background:#fff;color:#666;cursor:pointer;transition:all .15s;}
+  .btn.active{background:#222;color:#fff;border-color:#222;}
+  .desc{font-size:14px;color:#333;min-height:84px;background:#fff;border:1px solid #e8e6e0;border-radius:8px;padding:14px 16px;margin-bottom:18px;}
+  .stage{background:#fff;border:1px solid #e8e6e0;border-radius:8px;padding:8px;text-align:center;}
+  .stage svg{max-width:600px;width:100%;height:auto;}
+  .export{margin-top:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .export .btn{font-size:13px;padding:6px 12px;}
+  .note{font-size:12px;color:#666;}
+</style></head><body>
+<div class="wrap">
+  <h1>How a Living System Moves Information</h1>
+  <p class="sub">After Truemper &middot; bottom-up and top-down flows &middot; four states</p>
+  <div class="controls" id="controls">
+    <button class="btn active" data-state="awake">Awake</button>
+    <button class="btn" data-state="dream">Dreaming</button>
+    <button class="btn" data-state="contemplative">Contemplative</button>
+    <button class="btn" data-state="stress">Stress</button>
+  </div>
+  <div class="desc" id="desc"></div>
+  <div class="stage" id="stage"></div>
+  <div class="export">
+    <button class="btn" id="dl-svg">Download this state as SVG</button>
+    <button class="btn" id="dl-png">Download this state as PNG</button>
+    <span class="note">SVG opens directly in Illustrator.</span>
+  </div>
+</div>
+<script>
+const C = {"green": "#2E7D5B", "violet": "#6B4E9E", "cyan": "#2A8FA8", "purple": "#8B4789", "gray": "#555555", "red": "#C24A3F", "ink": "#222222", "muted": "#666666", "line": "#888888"};
+const STATES = {"awake": {"label": "Awake", "desc": "All instruments online. Oscillatory signal from world and body rises through subconscious neuroprocesses & models, which produce two outputs at once: direct actions (no deliberation, exiting right) and feelings / unbidden thoughts (rising). These reach conscious neuroprocesses & models, which produce decisions and actions \u2014 and deliberate thoughts loop back down the left channel to update the models below.", "feel": 1, "conscious": 1, "direct": 1, "update": 1, "block": false, "stress": false}, "dream": {"label": "Dreaming", "desc": "The subconscious keeps running \u2014 replaying, consolidating, reorganizing models \u2014 but motor output is actively blocked (REM atonia). Feelings and unbidden thoughts rise vividly with no action attached. This is metabolizing time: signal filtered out during the day surfaces and dissolves. The top-down update loop runs strongly.", "feel": 1, "conscious": 0.5, "direct": 0.18, "update": 1, "block": true, "stress": false}, "contemplative": {"label": "Contemplative", "desc": "Walking, silent meditation, talking with a stranger. Reactive action is set down on purpose. Feelings and unbidden thoughts are given space to rise and be sensed without being acted on \u2014 then allowed to dissolve. Waking metabolizing: it returns the energy suppression was spending.", "feel": 1, "conscious": 1, "direct": 0.22, "update": 1, "block": false, "stress": false}, "stress": {"label": "Stress", "desc": "The gyroscope floods with threat. The pathway narrows: the relational compass goes offline first, dimensional integration collapses toward now. Subconscious models drive direct reactive action; conscious deliberation and the top-down update loop slow or stop. Nothing is metabolized \u2014 it stays blocked, costing energy.", "feel": 0.4, "conscious": 0.32, "direct": 1, "update": 0.15, "block": false, "stress": false}};
+
+function build(key){
+  const s=STATES[key]; const o=v=>v.toFixed(2); const dim=v=>Math.max(v,0.22).toFixed(2);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 660" width="600" height="660">
+  <style>text{font-family:Georgia,serif;}.t-title{font-size:14px;fill:${C.ink};}.t-sub{font-size:11px;fill:${C.muted};}.t-lbl{font-size:11px;fill:${C.muted};}.t-flow{font-size:11px;fill:${C.muted};font-style:italic;}</style>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M2 1 L8 5 L2 9" fill="none" stroke="${C.line}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+  <rect x="0" y="0" width="600" height="660" fill="#FBFAF7"/>
+  <text x="28" y="34" font-family="Georgia, serif" font-size="16" fill="${C.ink}">State: ${s.label}</text>
+
+  <!-- horizontal flow-direction captions -->
+  <text class="t-flow" x="300" y="56" text-anchor="middle">top-down: revising &#8595;&#8593; bottom-up: signal rising</text>
+
+  <!-- CONSCIOUS -->
+  <g opacity="${dim(s.conscious)}"><rect x="240" y="78" width="220" height="96" rx="14" fill="none" stroke="${C.violet}" stroke-width="1.4"/><text class="t-title" x="350" y="104" text-anchor="middle">Conscious neuroprocesses</text><text class="t-title" x="350" y="122" text-anchor="middle">&amp; models</text><text class="t-lbl" x="350" y="154" text-anchor="middle">&#9829; compass &#183; &#9827; integration</text></g>
+  <!-- FEELINGS / UNBIDDEN THOUGHTS (both t-title now) -->
+  <g opacity="${o(s.feel)}"><rect x="240" y="232" width="220" height="64" rx="12" fill="none" stroke="${C.purple}" stroke-width="1.4"/><text class="t-title" x="350" y="259" text-anchor="middle">Feelings</text><text class="t-title" x="350" y="279" text-anchor="middle">unbidden thoughts</text></g>
+  <!-- SUBCONSCIOUS -->
+  <g><rect x="240" y="354" width="220" height="118" rx="14" fill="none" stroke="${C.green}" stroke-width="1.4"/><text class="t-title" x="350" y="380" text-anchor="middle">Subconscious neuroprocesses</text><text class="t-title" x="350" y="398" text-anchor="middle">&amp; models</text><text class="t-lbl" x="350" y="428" text-anchor="middle">&#9824; gyroscope</text><text class="t-lbl" x="350" y="448" text-anchor="middle">&#9830; radar</text></g>
+  <!-- WORLD / BODY -->
+  <g><rect x="240" y="532" width="220" height="74" rx="12" fill="none" stroke="${C.cyan}" stroke-width="1.4"/><text class="t-title" x="350" y="562" text-anchor="middle">World + body</text><text class="t-sub" x="350" y="584" text-anchor="middle">oscillatory &#183; 1/f substrate</text></g>
+
+  <!-- bottom-up arrows (spine center x=350, in gaps) -->
+  <line x1="350" y1="530" x2="350" y2="474" stroke="${C.line}" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="350" y1="352" x2="350" y2="298" stroke="${C.line}" stroke-width="1.5" marker-end="url(#arrow)" opacity="${o(s.feel)}"/>
+  <line x1="350" y1="230" x2="350" y2="176" stroke="${C.line}" stroke-width="1.5" marker-end="url(#arrow)" opacity="${dim(s.conscious)}"/>
+
+  <!-- TOP-DOWN: deliberate thoughts as a BOX in the left channel -->
+  <g opacity="${o(s.update)}">
+    <rect x="40" y="300" width="120" height="60" rx="10" fill="none" stroke="${C.gray}" stroke-width="1.4" stroke-dasharray="5 4"/>
+    <text class="t-title" x="100" y="326" text-anchor="middle">Deliberate</text>
+    <text class="t-title" x="100" y="344" text-anchor="middle">thoughts</text>
+  </g>
+  <!-- conscious left edge -> deliberate box -->
+  <path d="M240 120 L100 120 L100 298" fill="none" stroke="${C.line}" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrow)" opacity="${o(s.update)}"/>
+  <!-- deliberate box -> subconscious left edge -->
+  <path d="M100 360 L100 412 L238 412" fill="none" stroke="${C.line}" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrow)" opacity="${o(s.update)}"/>
+  <text class="t-lbl" x="100" y="386" text-anchor="middle" opacity="${o(s.update)}">metabolize &#183; update</text>
+
+  <!-- side exits right -->
+  <g opacity="${dim(s.conscious)}"><rect x="500" y="96" width="84" height="60" rx="10" fill="none" stroke="${C.gray}" stroke-width="1.4"/><text class="t-title" x="542" y="122" text-anchor="middle">Decisions</text><text class="t-sub" x="542" y="140" text-anchor="middle">+ actions</text></g>
+  <line x1="460" y1="126" x2="498" y2="126" stroke="${C.line}" stroke-width="1.5" marker-end="url(#arrow)" opacity="${dim(s.conscious)}"/>
+  <g opacity="${dim(s.direct)}"><rect x="500" y="383" width="84" height="60" rx="10" fill="none" stroke="${C.gray}" stroke-width="1.4"/><text class="t-title" x="542" y="409" text-anchor="middle">Direct</text><text class="t-title" x="542" y="427" text-anchor="middle">actions</text></g>
+  <line x1="460" y1="413" x2="498" y2="413" stroke="${s.block?C.red:C.line}" stroke-width="${s.block?2.4:1.5}" marker-end="url(#arrow)" opacity="${s.block?1:dim(s.direct)}"/>
+  ${s.block?`<text class="t-lbl" x="479" y="403" text-anchor="middle" fill="${C.red}">blocked</text>`:``}
+  ${s.stress?`<text class="t-lbl" x="350" y="168" text-anchor="middle" fill="${C.red}">&#9829; &#9827; narrowed</text>`:``}
+</svg>`;
+}
+
+const stage=document.getElementById('stage'),desc=document.getElementById('desc');let current='awake';
+function render(k){current=k;stage.innerHTML=build(k);desc.textContent=STATES[k].desc;document.querySelectorAll('.btn[data-state]').forEach(b=>b.classList.toggle('active',b.dataset.state===k));}
+document.querySelectorAll('.btn[data-state]').forEach(b=>b.addEventListener('click',()=>render(b.dataset.state)));
+document.getElementById('dl-svg').addEventListener('click',()=>{const blob=new Blob([build(current)],{type:'image/svg+xml'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='human_flow_'+current+'.svg';a.click();URL.revokeObjectURL(url);});
+document.getElementById('dl-png').addEventListener('click',()=>{const img=new Image();const b=new Blob([build(current)],{type:'image/svg+xml;charset=utf-8'});const url=URL.createObjectURL(b);img.onload=()=>{const sc=2,cv=document.createElement('canvas');cv.width=600*sc;cv.height=660*sc;const ctx=cv.getContext('2d');ctx.fillStyle='#FBFAF7';ctx.fillRect(0,0,cv.width,cv.height);ctx.scale(sc,sc);ctx.drawImage(img,0,0,600,660);URL.revokeObjectURL(url);cv.toBlob(bl=>{const a=document.createElement('a');a.href=URL.createObjectURL(bl);a.download='human_flow_'+current+'.png';a.click();});};img.src=url;});
+render('awake');
+</script></body></html>
