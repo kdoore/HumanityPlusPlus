@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIM Information Flow — Four States</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FDFCF9;
+    --ink: #2C2C2A;
+    --ink-soft: #5F5E5A;
+    --line: #D3D1C7;
+    --purple: #534AB7;
+    --red: #A32D2D;
+    --green: #639922;
+    --gray: #888780;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 56px 24px 24px;
+    text-align: center;
+  }
+  h1 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-weight: 600;
+    font-size: 30px;
+    letter-spacing: -0.01em;
+    margin: 0 0 10px;
+  }
+  header p {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    max-width: 520px;
+    margin: 0 auto;
+  }
+  nav.tabs {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin: 36px auto 0;
+    max-width: 760px;
+    padding: 0 24px;
+    flex-wrap: wrap;
+  }
+  .tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: transparent;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  .tab:hover { border-color: var(--ink-soft); color: var(--ink); }
+  .tab.active {
+    border-color: var(--dot, var(--ink));
+    color: var(--ink);
+    background: #ffffff;
+  }
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--dot, var(--ink-soft));
+    flex-shrink: 0;
+  }
+  main {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 32px 24px 24px;
+  }
+  .panel {
+    display: none;
+  }
+  .panel.active {
+    display: block;
+    animation: fade 0.25s ease;
+  }
+  @keyframes fade {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .diagram-frame {
+    background: #ffffff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px;
+    overflow: hidden;
+  }
+  .diagram-frame svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .panel-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .panel-note {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    max-width: 480px;
+  }
+  button.download {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: none;
+    background: var(--ink);
+    color: var(--cream);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    white-space: nowrap;
+  }
+  button.download:hover { opacity: 0.85; }
+  footer {
+    max-width: 760px;
+    margin: 40px auto 60px;
+    padding: 20px 24px 0;
+    border-top: 1px solid var(--line);
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .panel.active { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Vital Intelligence Model — information flow</h1>
+  <p>Four states of the same human information-flow architecture, and how the four VIM instruments move through each. Choose a state, then download it as a template for your own learning or facilitation.</p>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" style="--dot: var(--purple)" data-tab="awake"><span class="dot"></span>Awake</button>
+  <button class="tab" style="--dot: var(--red)" data-tab="stress"><span class="dot"></span>Stress</button>
+  <button class="tab" style="--dot: var(--gray)" data-tab="dreaming"><span class="dot"></span>Dreaming</button>
+  <button class="tab" style="--dot: var(--green)" data-tab="contemplative"><span class="dot"></span>Contemplative</button>
+</nav>
+
+<main>
+
+  <div class="panel active" id="panel-awake">
+    <div class="diagram-frame" id="svg-awake">
+<svg width="700" height="600" viewBox="0 0 700 600" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>VIM information flow diagram, awake state</title>
+<desc>A vertical flow from world and body through subconscious and conscious neuroprocesses to decisions, with a top-down deliberate-thought feedback loop, each layer annotated with its corresponding VIM instruments.</desc>
+
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#5F5E5A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+<marker id="arrow-lg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#5F5E5A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="700" height="600" fill="#FDFCF9"/>
+
+<text x="45" y="45" font-family="sans-serif" font-size="15" font-weight="600" fill="#2C2C2A">State: awake</text>
+
+<!-- main column arrows -->
+<line x1="360" y1="460" x2="360" y2="386" stroke="#5F5E5A" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="360" y1="330" x2="360" y2="256" stroke="#5F5E5A" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="360" y1="200" x2="360" y2="126" stroke="#5F5E5A" stroke-width="1" marker-end="url(#arrow)"/>
+
+<!-- side arrows -->
+<line x1="500" y1="98" x2="520" y2="98" stroke="#5F5E5A" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="500" y1="358" x2="520" y2="358" stroke="#5F5E5A" stroke-width="1" marker-end="url(#arrow)"/>
+
+<!-- feedback loop, top-down -->
+<path d="M270 126 L270 160 L215 160" fill="none" stroke="#5F5E5A" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow-lg)"/>
+<path d="M140 190 L140 358 L220 358" fill="none" stroke="#5F5E5A" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow-lg)"/>
+
+<!-- Conscious models -->
+<rect x="220" y="70" width="280" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="1"/>
+<text x="360" y="90" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#26215C">Conscious models</text>
+<text x="360" y="108" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#3C3489">♦ modeling · ♣ integrating</text>
+
+<!-- Decisions + actions -->
+<rect x="520" y="70" width="130" height="56" rx="8" fill="#F1EFE8" stroke="#888780" stroke-width="1"/>
+<text x="585" y="90" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#2C2C2A">Decisions</text>
+<text x="585" y="108" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5F5E5A">+ actions</text>
+
+<!-- Deliberate thoughts -->
+<rect x="55" y="134" width="150" height="56" rx="8" fill="none" stroke="#5F5E5A" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="130" y="154" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#2C2C2A">Deliberate</text>
+<text x="130" y="172" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5F5E5A">thoughts</text>
+
+<!-- Feelings -->
+<rect x="220" y="200" width="280" height="56" rx="8" fill="#EAF3DE" stroke="#639922" stroke-width="1"/>
+<text x="360" y="220" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#173404">Feelings, unbidden thoughts</text>
+<text x="360" y="238" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#27500A">♦ modeling · ♥ relating</text>
+
+<!-- Subconscious models -->
+<rect x="220" y="330" width="280" height="56" rx="8" fill="#FCEBEB" stroke="#A32D2D" stroke-width="1"/>
+<text x="360" y="350" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#501313">Subconscious models</text>
+<text x="360" y="368" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#791F1F">♦ modeling · ♥ relating</text>
+
+<!-- Direct action -->
+<rect x="520" y="330" width="130" height="56" rx="8" fill="#F1EFE8" stroke="#888780" stroke-width="1"/>
+<text x="585" y="362" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#2C2C2A">Direct action</text>
+
+<!-- World + body -->
+<rect x="220" y="460" width="280" height="56" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="1"/>
+<text x="360" y="480" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#4A1B0C">World + body</text>
+<text x="360" y="498" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#712B13">♠ sensing</text>
+
+<!-- Credit line -->
+<text x="360" y="560" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#888780">Diagram structure adapted from Klaus Truemper's conscious/subconscious information-flow model.</text>
+<text x="360" y="578" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#888780">Vital Intelligence Model · Humanity++ · CC BY-SA 4.0</text>
+
+</svg>
+</div>
+    <div class="panel-footer">
+      <p class="panel-note">The baseline: signal rises from world and body through subconscious and conscious models, decisions form, and deliberate thought revises the layers below it — top-down.</p>
+      <button class="download" data-target="svg-awake" data-name="vim-awake-state">Download PNG</button>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-stress">
+    <div class="diagram-frame" id="svg-stress">
+<svg width="700" height="600" viewBox="0 0 700 600" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>VIM information flow diagram, stress state</title>
+<desc>Conscious models and the deliberate-thought feedback loop dim under stress, while world and body, feelings, subconscious models, and direct action stay fully active.</desc>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#5F5E5A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+<marker id="arrow-lg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#5F5E5A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker>
+</defs>
+<rect x="0" y="0" width="700" height="600" fill="#FDFCF9"/>
+<text x="45" y="45" font-family="sans-serif" font-size="15" font-weight="600" fill="#2C2C2A">State: stress</text>
+
+<line x1="360" y1="460" x2="360" y2="386" stroke="#5F5E5A" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="360" y1="330" x2="360" y2="256" stroke="#5F5E5A" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="360" y1="200" x2="360" y2="126" stroke="#5F5E5A" stroke-width="1" marker-end="url(#arrow)" opacity="0.35"/>
+
+<line x1="500" y1="98" x2="520" y2="98" stroke="#5F5E5A" stroke-width="1" marker-end="url(#arrow)" opacity="0.35"/>
+<line x1="500" y1="358" x2="520" y2="358" stroke="#5F5E5A" stroke-width="1" marker-end="url(#arrow)"/>
+
+<path d="M270 126 L270 160 L215 160" fill="none" stroke="#5F5E5A" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow-lg)" opacity="0.25"/>
+<path d="M140 190 L140 358 L220 358" fill="none" stroke="#5F5E5A" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow-lg)" opacity="0.25"/>
+
+<rect x="220" y="70" width="280" height="56" rx="8" fill="#F1EFE8" stroke="#888780" stroke-width="1" opacity="0.4"/>
+<text x="360" y="90" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#2C2C2A" opacity="0.5">Conscious models</text>
+<text x="360" y="108" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5F5E5A" opacity="0.5">♦ modeling · ♣ integrating</text>
+
+<rect x="520" y="70" width="130" height="56" rx="8" fill="#F1EFE8" stroke="#888780" stroke-width="1" opacity="0.4"/>
+<text x="585" y="90" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#2C2C2A" opacity="0.5">Decisions</text>
+<text x="585" y="108" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5F5E5A" opacity="0.5">+ actions</text>
+
+<rect x="55" y="134" width="150" height="56" rx="8" fill="none" stroke="#5F5E5A" stroke-width="1" stroke-dasharray="4 3" opacity="0.25"/>
+<text x="130" y="154" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#2C2C2A" opacity="0.4">Deliberate</text>
+<text x="130" y="172" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5F5E5A" opacity="0.4">thoughts</text>
+
+<rect x="220" y="200" width="280" height="56" rx="8" fill="#EAF3DE" stroke="#639922" stroke-width="1"/>
+<text x="360" y="220" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#173404">Feelings, unbidden thoughts</text>
+<text x="360" y="238" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#27500A">♦ modeling · ♥ relating</text>
+
+<rect x="220" y="330" width="280" height="56" rx="8" fill="#FCEBEB" stroke="#A32D2D" stroke-width="1"/>
+<text x="360" y="350" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#501313">Subconscious models</text>
+<text x="360" y="368" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#791F1F">♦ modeling · ♥ relating</text>
+
+<rect x="520" y="330" width="130" height="56" rx="8" fill="#FCEBEB" stroke="#A32D2D" stroke-width="1"/>
+<text x="585" y="362" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#501313">Direct action</text>
+
+<rect x="220" y="460" width="280" height="56" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="1"/>
+<text x="360" y="480" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#4A1B0C">World + body</text>
+<text x="360" y="498" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#712B13">♠ sensing</text>
+
+<text x="360" y="560" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#888780">Diagram structure adapted from Klaus Truemper's conscious/subconscious information-flow model.</text>
+<text x="360" y="578" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#888780">Vital Intelligence Model · Humanity++ · CC BY-SA 4.0</text>
+</svg>
+</div>
+    <div class="panel-footer">
+      <p class="panel-note">Conscious models and the deliberate-thought loop dim — top-down regulation loses its grip — while the reactive layers and direct action stay fully active.</p>
+      <button class="download" data-target="svg-stress" data-name="vim-stress-state">Download PNG</button>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-dreaming">
+    <div class="diagram-frame" id="svg-dreaming">
+<svg width="700" height="600" viewBox="0 0 700 600" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>VIM information flow diagram, dreaming state</title>
+<desc>World and body sensing dims, conscious critical judgment and both action pathways dim, while subconscious models and feelings run at full intensity, largely unchecked.</desc>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#5F5E5A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+<marker id="arrow-lg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#5F5E5A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker>
+</defs>
+<rect x="0" y="0" width="700" height="600" fill="#FDFCF9"/>
+<text x="45" y="45" font-family="sans-serif" font-size="15" font-weight="600" fill="#2C2C2A">State: dreaming</text>
+
+<line x1="360" y1="460" x2="360" y2="386" stroke="#5F5E5A" stroke-width="1" marker-end="url(#arrow)" opacity="0.4"/>
+<line x1="360" y1="330" x2="360" y2="256" stroke="#5F5E5A" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="360" y1="200" x2="360" y2="126" stroke="#5F5E5A" stroke-width="1" marker-end="url(#arrow)" opacity="0.3"/>
+
+<line x1="500" y1="98" x2="520" y2="98" stroke="#5F5E5A" stroke-width="1" marker-end="url(#arrow)" opacity="0.2"/>
+<line x1="500" y1="358" x2="520" y2="358" stroke="#5F5E5A" stroke-width="1" marker-end="url(#arrow)" opacity="0.3"/>
+
+<path d="M270 126 L270 160 L215 160" fill="none" stroke="#5F5E5A" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow-lg)" opacity="0.15"/>
+<path d="M140 190 L140 358 L220 358" fill="none" stroke="#5F5E5A" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow-lg)" opacity="0.15"/>
+
+<rect x="220" y="70" width="280" height="56" rx="8" fill="#F1EFE8" stroke="#888780" stroke-width="1" opacity="0.35"/>
+<text x="360" y="90" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#2C2C2A" opacity="0.45">Conscious models</text>
+<text x="360" y="108" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5F5E5A" opacity="0.45">♦ modeling · ♣ integrating</text>
+
+<rect x="520" y="70" width="130" height="56" rx="8" fill="#F1EFE8" stroke="#888780" stroke-width="1" opacity="0.2"/>
+<text x="585" y="90" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#2C2C2A" opacity="0.3">Decisions</text>
+<text x="585" y="108" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5F5E5A" opacity="0.3">+ actions</text>
+
+<rect x="55" y="134" width="150" height="56" rx="8" fill="none" stroke="#5F5E5A" stroke-width="1" stroke-dasharray="4 3" opacity="0.15"/>
+<text x="130" y="154" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#2C2C2A" opacity="0.3">Deliberate</text>
+<text x="130" y="172" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5F5E5A" opacity="0.3">thoughts</text>
+
+<rect x="220" y="200" width="280" height="56" rx="8" fill="#EAF3DE" stroke="#639922" stroke-width="1"/>
+<text x="360" y="220" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#173404">Feelings, unbidden thoughts</text>
+<text x="360" y="238" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#27500A">♦ modeling · ♥ relating</text>
+
+<rect x="220" y="330" width="280" height="56" rx="8" fill="#FCEBEB" stroke="#A32D2D" stroke-width="1"/>
+<text x="360" y="350" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#501313">Subconscious models</text>
+<text x="360" y="368" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#791F1F">♦ modeling · ♥ relating</text>
+
+<rect x="520" y="330" width="130" height="56" rx="8" fill="#F1EFE8" stroke="#888780" stroke-width="1" opacity="0.3"/>
+<text x="585" y="362" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#2C2C2A" opacity="0.4">Direct action</text>
+
+<rect x="220" y="460" width="280" height="56" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="1" opacity="0.5"/>
+<text x="360" y="480" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#4A1B0C" opacity="0.6">World + body</text>
+<text x="360" y="498" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#712B13" opacity="0.6">♠ sensing</text>
+
+<text x="360" y="560" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#888780">Diagram structure adapted from Klaus Truemper's conscious/subconscious information-flow model.</text>
+<text x="360" y="578" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#888780">Vital Intelligence Model · Humanity++ · CC BY-SA 4.0</text>
+</svg>
+</div>
+    <div class="panel-footer">
+      <p class="panel-note">External sensing dims, both action pathways go quiet, and subconscious models and feelings run at full intensity, largely unchecked by conscious judgment.</p>
+      <button class="download" data-target="svg-dreaming" data-name="vim-dreaming-state">Download PNG</button>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-contemplative">
+    <div class="diagram-frame" id="svg-contemplative">
+<svg width="700" height="600" viewBox="0 0 700 600" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>VIM information flow diagram, contemplative state</title>
+<desc>Every internal layer runs at full intensity and in coherent relationship, with the deliberate-thought feedback loop fully active, while the two action outputs quiet down since basic seated contemplative practice is not oriented toward producing external decisions or movement.</desc>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#5F5E5A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+<marker id="arrow-lg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#5F5E5A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker>
+</defs>
+<rect x="0" y="0" width="700" height="600" fill="#FDFCF9"/>
+<text x="45" y="45" font-family="sans-serif" font-size="15" font-weight="600" fill="#2C2C2A">State: contemplative (seated)</text>
+
+<line x1="360" y1="460" x2="360" y2="386" stroke="#5F5E5A" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="360" y1="330" x2="360" y2="256" stroke="#5F5E5A" stroke-width="1" marker-end="url(#arrow)"/>
+<line x1="360" y1="200" x2="360" y2="126" stroke="#5F5E5A" stroke-width="1" marker-end="url(#arrow)"/>
+
+<line x1="500" y1="98" x2="520" y2="98" stroke="#5F5E5A" stroke-width="1" marker-end="url(#arrow)" opacity="0.3"/>
+<line x1="500" y1="358" x2="520" y2="358" stroke="#5F5E5A" stroke-width="1" marker-end="url(#arrow)" opacity="0.2"/>
+
+<path d="M270 126 L270 160 L215 160" fill="none" stroke="#5F5E5A" stroke-width="1.25" stroke-dasharray="4 3" marker-end="url(#arrow-lg)"/>
+<path d="M140 190 L140 358 L220 358" fill="none" stroke="#5F5E5A" stroke-width="1.25" stroke-dasharray="4 3" marker-end="url(#arrow-lg)"/>
+
+<rect x="220" y="70" width="280" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="1"/>
+<text x="360" y="90" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#26215C">Conscious models</text>
+<text x="360" y="108" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#3C3489">♦ modeling · ♣ integrating</text>
+
+<rect x="520" y="70" width="130" height="56" rx="8" fill="#F1EFE8" stroke="#888780" stroke-width="1" opacity="0.3"/>
+<text x="585" y="90" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#2C2C2A" opacity="0.4">Decisions</text>
+<text x="585" y="108" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5F5E5A" opacity="0.4">+ actions</text>
+
+<rect x="55" y="134" width="150" height="56" rx="8" fill="none" stroke="#5F5E5A" stroke-width="1.25" stroke-dasharray="4 3"/>
+<text x="130" y="154" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#2C2C2A">Deliberate</text>
+<text x="130" y="172" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5F5E5A">thoughts</text>
+
+<rect x="220" y="200" width="280" height="56" rx="8" fill="#EAF3DE" stroke="#639922" stroke-width="1"/>
+<text x="360" y="220" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#173404">Feelings, unbidden thoughts</text>
+<text x="360" y="238" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#27500A">♦ modeling · ♥ relating</text>
+
+<rect x="220" y="330" width="280" height="56" rx="8" fill="#FCEBEB" stroke="#A32D2D" stroke-width="1"/>
+<text x="360" y="350" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#501313">Subconscious models</text>
+<text x="360" y="368" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#791F1F">♦ modeling · ♥ relating</text>
+
+<rect x="520" y="330" width="130" height="56" rx="8" fill="#F1EFE8" stroke="#888780" stroke-width="1" opacity="0.2"/>
+<text x="585" y="362" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#2C2C2A" opacity="0.3">Direct action</text>
+
+<rect x="220" y="460" width="280" height="56" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="1"/>
+<text x="360" y="480" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="600" fill="#4A1B0C">World + body</text>
+<text x="360" y="498" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#712B13">♠ sensing</text>
+
+<text x="360" y="560" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#888780">Diagram structure adapted from Klaus Truemper's conscious/subconscious information-flow model.</text>
+<text x="360" y="578" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#888780">Vital Intelligence Model · Humanity++ · CC BY-SA 4.0</text>
+</svg>
+</div>
+    <div class="panel-footer">
+      <p class="panel-note">Every internal layer runs in coherent relationship, and the deliberate-thought feedback loop is the most active part of the diagram, not the quietest.</p>
+      <button class="download" data-target="svg-contemplative" data-name="vim-contemplative-state">Download PNG</button>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  Diagram structure adapted from Klaus Truemper's conscious/subconscious information-flow model.<br>
+  Vital Intelligence Model · Humanity++ · CC BY-SA 4.0 · share freely, attribute clearly, remix with care.
+</footer>
+
+<script>
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// PNG download via canvas
+document.querySelectorAll('button.download').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const svgEl = document.querySelector('#' + btn.dataset.target + ' svg');
+    const serializer = new XMLSerializer();
+    let svgString = serializer.serializeToString(svgEl);
+    if (!svgString.match(/^<svg[^>]+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/)) {
+      svgString = svgString.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    img.onload = () => {
+      const scale = 2;
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.scale(scale, scale);
+      ctx.fillStyle = '#FDFCF9';
+      ctx.fillRect(0, 0, img.width, img.height);
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(blob => {
+        const link = document.createElement('a');
+        link.download = btn.dataset.name + '.png';
+        link.href = URL.createObjectURL(blob);
+        link.click();
+      });
+    };
+    img.src = url;
+  });
+});
+</script>
+
+</body>
+</html>
