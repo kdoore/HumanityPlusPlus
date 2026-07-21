@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Octahedral Resonance Field — VIM</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Lora:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --dark: #141413;
+  --light: #faf9f5;
+  --mid: #b0aea5;
+  --lgray: #e8e6dc;
+  --amber: #d4873a;
+  --teal: #3a9e96;
+  --violet: #7b5ea7;
+  --orange: #d97757;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Poppins',sans-serif; background:var(--dark); min-height:100vh; color:var(--light); display:flex; flex-direction:column; }
+.layout { display:flex; flex:1; gap:0; min-height:100vh; }
+.sidebar {
+  width:260px; flex-shrink:0;
+  background:rgba(20,20,19,0.95);
+  border-right:1px solid rgba(255,255,255,0.08);
+  padding:20px 16px; overflow-y:auto;
+}
+.sidebar h1 { font-family:'Lora',serif; font-size:16px; font-weight:500; margin-bottom:4px; color:var(--teal); line-height:1.3; }
+.sidebar .sub { color:var(--mid); font-size:11px; margin-bottom:20px; line-height:1.5; }
+.sec { margin-bottom:20px; }
+.sec h3 { font-size:11px; font-weight:600; color:var(--mid); text-transform:uppercase; letter-spacing:.08em; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.07); padding-bottom:6px; }
+.cg { margin-bottom:12px; }
+.cg label { display:block; font-size:11px; font-weight:500; color:var(--light); margin-bottom:5px; }
+.slider-row { display:flex; align-items:center; gap:8px; }
+.slider-row input[type=range] { flex:1; height:3px; background:rgba(255,255,255,0.12); border-radius:2px; outline:none; -webkit-appearance:none; cursor:pointer; }
+.slider-row input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:13px; height:13px; background:var(--teal); border-radius:50%; cursor:pointer; }
+.val { font-family:'Courier New',monospace; font-size:10px; color:var(--mid); min-width:38px; text-align:right; }
+.btn-row { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:6px; }
+.btn { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:var(--light); padding:7px 0; border-radius:6px; cursor:pointer; font-size:11px; font-family:'Poppins',sans-serif; transition:all .15s; }
+.btn:hover { background:rgba(58,158,150,0.2); border-color:var(--teal); }
+.btn.accent { background:rgba(58,158,150,0.15); border-color:var(--teal); color:var(--teal); }
+.seed-box { width:100%; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:var(--light); font-family:'Courier New',monospace; font-size:12px; padding:7px 10px; text-align:center; margin-bottom:8px; }
+.seed-box:focus { outline:none; border-color:var(--teal); }
+.state-badge { display:inline-block; padding:3px 8px; border-radius:12px; font-size:10px; font-weight:600; margin-bottom:8px; }
+.mdp-label { font-size:10px; color:var(--mid); line-height:1.5; }
+.canvas-area { flex:1; position:relative; display:flex; align-items:center; justify-content:center; background:#0a0a09; overflow:hidden; }
+#canvas-container canvas { display:block; }
+.legend { position:absolute; bottom:16px; left:50%; transform:translateX(-50%); display:flex; gap:16px; background:rgba(0,0,0,0.6); padding:8px 16px; border-radius:20px; border:1px solid rgba(255,255,255,0.08); }
+.leg-item { display:flex; align-items:center; gap:5px; font-size:10px; color:var(--mid); }
+.leg-dot { width:8px; height:8px; border-radius:50%; }
+</style>
+</head>
+<body>
+<div class="layout">
+<div class="sidebar">
+  <h1>Octahedral Resonance Field</h1>
+  <div class="sub">K₂,₂,₂ geometry · MDP six states · Fibonacci momentum · Acoustic standing waves across scales</div>
+
+  <div class="sec">
+    <h3>Seed</h3>
+    <input class="seed-box" type="number" id="seed-input" value="40126" onchange="updateSeed()">
+    <div class="btn-row">
+      <button class="btn" onclick="prevSeed()">← Prev</button>
+      <button class="btn" onclick="nextSeed()">Next →</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn" onclick="randSeed()">Random</button>
+      <button class="btn accent" onclick="resetParams()">Reset</button>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h3>Resonance</h3>
+    <div class="cg">
+      <label>Field Coherence</label>
+      <div class="slider-row">
+        <input type="range" id="coherence" min="0.01" max="1.0" step="0.01" value="0.62" oninput="p('coherence',this.value)">
+        <span class="val" id="coherence-v">0.62</span>
+      </div>
+    </div>
+    <div class="cg">
+      <label>Harmonic Depth (Fibonacci n)</label>
+      <div class="slider-row">
+        <input type="range" id="fibDepth" min="3" max="10" step="1" value="6" oninput="p('fibDepth',this.value)">
+        <span class="val" id="fibDepth-v">6</span>
+      </div>
+    </div>
+    <div class="cg">
+      <label>Acoustic Wave Speed</label>
+      <div class="slider-row">
+        <input type="range" id="waveSpeed" min="0.2" max="3.0" step="0.1" value="1.0" oninput="p('waveSpeed',this.value)">
+        <span class="val" id="waveSpeed-v">1.0</span>
+      </div>
+    </div>
+    <div class="cg">
+      <label>Scale Coupling</label>
+      <div class="slider-row">
+        <input type="range" id="coupling" min="0.0" max="1.0" step="0.02" value="0.55" oninput="p('coupling',this.value)">
+        <span class="val" id="coupling-v">0.55</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h3>Geometry</h3>
+    <div class="cg">
+      <label>Ego Tunnel Pressure</label>
+      <div class="slider-row">
+        <input type="range" id="ego" min="0.0" max="1.0" step="0.02" value="0.18" oninput="p('ego',this.value)">
+        <span class="val" id="ego-v">0.18</span>
+      </div>
+    </div>
+    <div class="cg">
+      <label>Torus Rotation</label>
+      <div class="slider-row">
+        <input type="range" id="torusRot" min="0.0" max="1.0" step="0.01" value="0.3" oninput="p('torusRot',this.value)">
+        <span class="val" id="torusRot-v">0.3</span>
+      </div>
+    </div>
+    <div class="cg">
+      <label>Node Pulse Intensity</label>
+      <div class="slider-row">
+        <input type="range" id="pulse" min="0.1" max="2.0" step="0.1" value="0.8" oninput="p('pulse',this.value)">
+        <span class="val" id="pulse-v">0.8</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h3>MDP State</h3>
+    <div id="mdp-badge" class="state-badge" style="background:rgba(58,158,150,0.2);color:#3a9e96;">S3 — Holarchic Flow</div>
+    <div class="mdp-label" id="mdp-desc">Field coherent · bottom-up feedback active · Fibonacci momentum distributing energy across all scales</div>
+  </div>
+
+  <div class="sec">
+    <h3>Palette</h3>
+    <div class="cg">
+      <label>Teal (S3 / Living Field)</label>
+      <div class="slider-row">
+        <input type="color" id="c-teal" value="#3a9e96" onchange="updateColor('teal',this.value)">
+        <span class="val" id="c-teal-v">#3a9e96</span>
+      </div>
+    </div>
+    <div class="cg">
+      <label>Amber (S1 / Energy)</label>
+      <div class="slider-row">
+        <input type="color" id="c-amber" value="#d4873a" onchange="updateColor('amber',this.value)">
+        <span class="val" id="c-amber-v">#d4873a</span>
+      </div>
+    </div>
+    <div class="cg">
+      <label>Violet (S2 / Vacant Place)</label>
+      <div class="slider-row">
+        <input type="color" id="c-violet" value="#7b5ea7" onchange="updateColor('violet',this.value)">
+        <span class="val" id="c-violet-v">#7b5ea7</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="canvas-area">
+  <div id="canvas-container"></div>
+  <div class="legend">
+    <div class="leg-item"><div class="leg-dot" style="background:#3a9e96"></div>Holarchic nodes (S3)</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#d4873a"></div>Disequilibration (S1)</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#7b5ea7"></div>Vacant place (S2)</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#e8e6dc;opacity:0.5"></div>Ego tunnel (S0/S4)</div>
+  </div>
+</div>
+</div>
+
+<script>
+let params = {
+  seed: 40126,
+  coherence: 0.62,
+  fibDepth: 6,
+  waveSpeed: 1.0,
+  coupling: 0.55,
+  ego: 0.18,
+  torusRot: 0.3,
+  pulse: 0.8,
+  colors: { teal:'#3a9e96', amber:'#d4873a', violet:'#7b5ea7' }
+};
+const defaults = JSON.parse(JSON.stringify(params));
+
+function hexToRgb(h) {
+  let r=parseInt(h.slice(1,3),16), g=parseInt(h.slice(3,5),16), b=parseInt(h.slice(5,7),16);
+  return {r,g,b};
+}
+
+// Fibonacci sequence
+function fib(n){ let a=[1,1]; for(let i=2;i<=n;i++) a.push(a[i-1]+a[i-2]); return a; }
+
+// MDP state classification based on params
+function getMDPState() {
+  let coh = params.coherence, ego = params.ego;
+  if (ego > 0.75) return { id:'S0', label:'S0 — Frozen Order', color:'#b0aea5', desc:'High ego pressure · field locked · feedback suppressed · pyramid dominance active' };
+  if (ego > 0.55 && coh < 0.3) return { id:'S5', label:'S5 — Traumatic Chaos', color:'#c14c3a', desc:'No kindness field · Markov blanket collapse · resonance absent' };
+  if (coh < 0.25) return { id:'S1', label:'S1 — Disequilibration', color:'#d4873a', desc:'Crack forming · prediction error propagating · field unstable but alive' };
+  if (coh > 0.25 && coh < 0.45 && ego < 0.4) return { id:'S2', label:'S2 — Vacant Place', color:'#7b5ea7', desc:'Neither/nor · old categories released · emergence possible · hold gently' };
+  if (coh > 0.45 && ego < 0.35) return { id:'S3', label:'S3 — Holarchic Flow', color:'#3a9e96', desc:'Field coherent · bottom-up feedback active · Fibonacci momentum distributing energy across all scales' };
+  if (ego > 0.35 && ego < 0.55) return { id:'S4', label:'S4 — Reversion', color:'#a07040', desc:'Values vector captured · grid re-imposed over the web · zero holonomy' };
+  return { id:'S3', label:'S3 — Holarchic Flow', color:'#3a9e96', desc:'Field coherent · bottom-up feedback active' };
+}
+
+let myp5;
+
+const sketch = function(s) {
+  let t = 0;
+  let nodes = [];
+  let waveRings = [];
+  let fibSeq = [];
+  let W, H, cx, cy;
+
+  // Octahedral K2,2,2 vertices projected to 2D
+  // 6 vertices: top, bottom (poles), 4 equatorial nodes
+  // Mapped as hourglass: top half = upper tetrahedron, bottom half = mirror
+  function octaVertices(cx, cy, R, rot) {
+    let verts = [];
+    // Top pole (S0 / apex of hierarchy / also S3 point of emanation)
+    verts.push({x: cx, y: cy - R * 0.85, scale: 'macro', role: 'apex'});
+    // Bottom pole (sensitivity to initial conditions — suppressed in pyramid)
+    verts.push({x: cx, y: cy + R * 0.85, scale: 'micro', role: 'base'});
+    // 4 equatorial — mid-scale — these are the K2,2,2 connecting nodes
+    for (let i = 0; i < 4; i++) {
+      let angle = rot + (i * Math.PI / 2) + Math.PI / 4;
+      verts.push({
+        x: cx + R * 0.62 * Math.cos(angle),
+        y: cy + R * 0.18 * Math.sin(angle),
+        scale: 'meso', role: 'equatorial'
+      });
+    }
+    return verts;
+  }
+
+  // Edges of K2,2,2: each of 3 pairs {top,eq1,eq2} ↔ {bot,eq3,eq4}
+  // Complete bipartite K2,2,2: every vertex in one partition connects to every vertex in other
+  // Partitions: {apex, eq0, eq2} and {base, eq1, eq3}
+  function octaEdges() {
+    let A = [0, 2, 4], B = [1, 3, 5]; // index into verts
+    let edges = [];
+    for (let a of A) for (let b of B) edges.push([a, b]);
+    return edges;
+  }
+
+  // Fibonacci standing wave: amplitude at position x along edge, time t, harmonic n
+  function fibWave(pos, t, n, speed) {
+    return Math.sin(pos * Math.PI * fibSeq[n] * 0.04 - t * speed * 0.8) *
+           Math.cos(pos * Math.PI * fibSeq[Math.max(0,n-1)] * 0.025 + t * speed * 0.5);
+  }
+
+  s.setup = function() {
+    W = Math.min(s.windowWidth - 270, s.windowHeight - 10);
+    H = W;
+    let cnv = s.createCanvas(W, H);
+    cnv.parent('canvas-container');
+    s.randomSeed(params.seed);
+    s.noiseSeed(params.seed);
+    fibSeq = fib(12);
+    buildSystem();
+  };
+
+  function buildSystem() {
+    s.randomSeed(params.seed);
+    s.noiseSeed(params.seed);
+    cx = W / 2; cy = H / 2;
+    let R = W * 0.36;
+    let rot = t * params.torusRot * 0.008;
+    nodes = octaVertices(cx, cy, R, rot);
+    waveRings = [];
+    // Multi-scale rings: 3 scales (macro, meso, micro) matching octahedral poles
+    let scales = [0.85, 0.52, 0.26];
+    for (let sc of scales) {
+      waveRings.push({ r: R * sc, nPoints: Math.round(fibSeq[Math.min(params.fibDepth, fibSeq.length-1)] % 24 + 8) });
+    }
+  }
+
+  s.draw = function() {
+    t += 0.016 * params.waveSpeed;
+    let state = getMDPState();
+    updateMDPDisplay(state);
+
+    // Background — dark field, slow fade for trails
+    let bgAlpha = s.map(params.ego, 0, 1, 8, 22);
+    s.fill(10, 10, 9, bgAlpha);
+    s.noStroke();
+    s.rect(0, 0, W, H);
+
+    let R = W * 0.36;
+    let rot = t * params.torusRot * 0.008;
+    nodes = octaVertices(cx, cy, R, rot);
+    let edges = octaEdges();
+
+    let cTeal = hexToRgb(params.colors.teal);
+    let cAmber = hexToRgb(params.colors.amber);
+    let cViolet = hexToRgb(params.colors.violet);
+
+    // ── Acoustic standing wave rings (3 scales) ──
+    let scales = [0.85, 0.52, 0.26];
+    let scaleNames = ['macro', 'meso', 'micro'];
+    for (let si = 0; si < scales.length; si++) {
+      let rScale = R * scales[si];
+      let nPts = 64;
+      let egoCollapse = params.ego * (si === 2 ? 1.8 : si === 0 ? 0.4 : 1.0); // bottom scale most suppressed by ego
+      let coh = params.coherence * (1 - egoCollapse * 0.6);
+      
+      // Coupling: lower scales talk to upper via fibonacci ratios
+      let couplingPhase = 0;
+      if (si > 0 && params.coupling > 0) {
+        couplingPhase = Math.sin(t * params.waveSpeed * 0.3) * params.coupling * Math.PI;
+      }
+
+      // Draw wave ring
+      s.beginShape();
+      s.noFill();
+      for (let i = 0; i <= nPts; i++) {
+        let angle = (i / nPts) * Math.PI * 2;
+        let fibH = params.fibDepth;
+        let wave = 0;
+        for (let fn = 0; fn < Math.min(fibH, 5); fn++) {
+          let harmonic = fibSeq[fn] || 1;
+          wave += fibWave(i / nPts, t + couplingPhase, fn, params.waveSpeed) 
+                  * coh * rScale * 0.12 / (fn + 1);
+        }
+        // Ego tunnel: collapses wave at bottom scale (suppresses feedback)
+        if (si === 2) wave *= (1 - egoCollapse * 0.85);
+
+        let rx = (rScale + wave) * Math.cos(angle + rot * (si % 2 === 0 ? 1 : -1));
+        let ry = (rScale + wave) * 0.28 * Math.sin(angle + rot * (si % 2 === 0 ? 1 : -1));
+        // Hourglass warp — tighten toward center
+        let hourglassY = Math.sin(angle) * rScale * 0.55 + cy;
+        let px = cx + rx;
+        let py = hourglassY + Math.cos(angle * 2) * wave * 0.5;
+
+        // Color: teal for macro/meso, amber for disequilibration edge, violet for vacant place
+        let stateColor;
+        let coherenceFade = s.map(coh, 0, 1, 0.2, 0.7);
+        if (si === 0) stateColor = `rgba(${cTeal.r},${cTeal.g},${cTeal.b},${coherenceFade})`;
+        else if (si === 1) {
+          let mix = s.map(params.ego, 0, 1, 0, 1);
+          let r = Math.round(cTeal.r * (1-mix) + cViolet.r * mix);
+          let g = Math.round(cTeal.g * (1-mix) + cViolet.g * mix);
+          let b = Math.round(cTeal.b * (1-mix) + cViolet.b * mix);
+          stateColor = `rgba(${r},${g},${b},${coherenceFade * 0.8})`;
+        } else {
+          let egoVis = s.map(params.ego, 0, 1, 0.15, 0.55);
+          stateColor = `rgba(${cAmber.r},${cAmber.g},${cAmber.b},${egoVis})`;
+        }
+        s.stroke(stateColor);
+        s.strokeWeight(si === 0 ? 1.2 : si === 1 ? 0.8 : 0.5);
+        s.vertex(px, py);
+      }
+      s.endShape(s.CLOSE);
+    }
+
+    // ── K2,2,2 Edges — bipartite connections ──
+    for (let [a, b] of edges) {
+      let na = nodes[a], nb = nodes[b];
+      // Edge pulse: Fibonacci-timed
+      let edgePhase = (a + b) * 0.618; // golden ratio phase offset per edge
+      let pulse = s.map(Math.sin(t * params.waveSpeed * 1.1 + edgePhase), -1, 1, 0.15, params.pulse * 0.7);
+      let egoSup = 1 - params.ego * (na.role === 'base' || nb.role === 'base' ? 0.9 : 0.2);
+      let alpha = pulse * params.coherence * egoSup;
+      
+      // Gradient edge: teal→violet for upward flow, amber for downward
+      let isUpward = na.y > nb.y;
+      let col = isUpward ? cAmber : cTeal;
+      s.stroke(`rgba(${col.r},${col.g},${col.b},${alpha * 0.6})`);
+      s.strokeWeight(alpha * 1.6);
+      s.line(na.x, na.y, nb.x, nb.y);
+
+      // Traveling energy packets along edges
+      let nPackets = Math.ceil(params.coherence * 3);
+      for (let pk = 0; pk < nPackets; pk++) {
+        let phase = ((t * params.waveSpeed * 0.4 + pk / nPackets + edgePhase * 0.1) % 1.0);
+        let px2 = na.x + (nb.x - na.x) * phase;
+        let py2 = na.y + (nb.y - na.y) * phase;
+        let pSize = params.pulse * 2.5 * params.coherence * egoSup;
+        let pCol = isUpward ? cAmber : cTeal;
+        s.noStroke();
+        s.fill(`rgba(${pCol.r},${pCol.g},${pCol.b},${alpha * 1.4})`);
+        s.circle(px2, py2, pSize);
+      }
+    }
+
+    // ── Octahedral nodes ──
+    for (let ni = 0; ni < nodes.length; ni++) {
+      let nd = nodes[ni];
+      let isApex = nd.role === 'apex', isBase = nd.role === 'base';
+
+      // Fibonacci pulse per node
+      let fibIdx = ni % params.fibDepth;
+      let fibPulse = Math.sin(t * params.waveSpeed * (1 + fibSeq[fibIdx] * 0.03)) * params.pulse;
+      let baseSup = isBase ? (1 - params.ego * 0.9) : 1; // ego suppresses base node
+      let nodeCoh = params.coherence * baseSup;
+
+      let baseSize = isApex ? 14 : isBase ? 12 : 8;
+      let nodeSize = baseSize + fibPulse * 4 * params.pulse;
+      let glowSize = nodeSize * 2.8;
+
+      // Color by role
+      let nc;
+      if (isApex) nc = cTeal;
+      else if (isBase) {
+        let mix = params.ego;
+        nc = { r: Math.round(cAmber.r*(1-mix)+176*mix), g: Math.round(cAmber.g*(1-mix)+174*mix), b: Math.round(cAmber.b*(1-mix)+165*mix) };
+      } else nc = cViolet;
+
+      // Glow
+      s.noStroke();
+      s.fill(`rgba(${nc.r},${nc.g},${nc.b},${nodeCoh * 0.12})`);
+      s.circle(nd.x, nd.y, glowSize * 1.8);
+      s.fill(`rgba(${nc.r},${nc.g},${nc.b},${nodeCoh * 0.22})`);
+      s.circle(nd.x, nd.y, glowSize);
+
+      // Core
+      s.fill(`rgba(${nc.r},${nc.g},${nc.b},${0.5 + nodeCoh * 0.5})`);
+      s.circle(nd.x, nd.y, nodeSize);
+
+      // Inner bright
+      s.fill(`rgba(255,255,255,${nodeCoh * 0.5 * baseSup})`);
+      s.circle(nd.x, nd.y, nodeSize * 0.35);
+    }
+
+    // ── Ego Tunnel: if ego is high, draw a constricting band around center ──
+    if (params.ego > 0.08) {
+      let egoWidth = s.map(params.ego, 0.08, 1.0, 2, 40);
+      let egoAlpha = s.map(params.ego, 0.08, 1.0, 0.04, 0.35);
+      s.noFill();
+      s.stroke(`rgba(176,174,165,${egoAlpha})`);
+      s.strokeWeight(egoWidth);
+      s.ellipse(cx, cy, R * 0.7, R * 0.22);
+    }
+
+    // ── Toroidal flow hint: drifting particles on torus surface ──
+    let nTorus = Math.round(params.coherence * 30 * (1 - params.ego * 0.7));
+    for (let i = 0; i < nTorus; i++) {
+      let phi = (s.noise(i * 0.3, t * 0.08) * Math.PI * 4) % (Math.PI * 2);
+      let theta = (s.noise(i * 0.3 + 100, t * 0.05 + i * 0.07) * Math.PI * 2);
+      let majorR = R * 0.48, minorR = R * 0.15;
+      let tx = cx + (majorR + minorR * Math.cos(theta)) * Math.cos(phi + t * params.torusRot * 0.04);
+      let ty = cy + (majorR + minorR * Math.cos(theta)) * Math.sin(phi + t * params.torusRot * 0.04) * 0.22
+               + minorR * Math.sin(theta) * 0.7;
+      let alpha = s.map(s.noise(i * 0.5, t * 0.1), 0, 1, 0.05, 0.3) * params.coherence;
+      s.noStroke();
+      s.fill(`rgba(${cTeal.r},${cTeal.g},${cTeal.b},${alpha})`);
+      s.circle(tx, ty, 2.5);
+    }
+  };
+
+  s.windowResized = function() {
+    W = Math.min(s.windowWidth - 270, s.windowHeight - 10);
+    H = W;
+    s.resizeCanvas(W, H);
+  };
+};
+
+myp5 = new p5(sketch);
+
+function p(name, val) {
+  val = parseFloat(val);
+  if (name === 'fibDepth') val = parseInt(val);
+  params[name] = val;
+  document.getElementById(name + '-v').textContent = val;
+}
+function updateColor(name, val) {
+  params.colors[name] = val;
+  document.getElementById('c-' + name + '-v').textContent = val;
+}
+function updateMDPDisplay(state) {
+  let badge = document.getElementById('mdp-badge');
+  let desc = document.getElementById('mdp-desc');
+  if (badge) { badge.textContent = state.label; badge.style.background = state.color + '33'; badge.style.color = state.color; }
+  if (desc) desc.textContent = state.desc;
+}
+function updateSeed() {
+  let v = parseInt(document.getElementById('seed-input').value);
+  if (v > 0) { params.seed = v; myp5.remove(); myp5 = new p5(sketch); }
+}
+function prevSeed() { params.seed = Math.max(1, params.seed - 1); document.getElementById('seed-input').value = params.seed; myp5.remove(); myp5 = new p5(sketch); }
+function nextSeed() { params.seed++; document.getElementById('seed-input').value = params.seed; myp5.remove(); myp5 = new p5(sketch); }
+function randSeed() { params.seed = Math.floor(Math.random() * 999999) + 1; document.getElementById('seed-input').value = params.seed; myp5.remove(); myp5 = new p5(sketch); }
+function resetParams() {
+  params = JSON.parse(JSON.stringify(defaults));
+  document.getElementById('seed-input').value = params.seed;
+  ['coherence','fibDepth','waveSpeed','coupling','ego','torusRot','pulse'].forEach(k => {
+    document.getElementById(k).value = params[k];
+    document.getElementById(k+'-v').textContent = params[k];
+  });
+  myp5.remove(); myp5 = new p5(sketch);
+}
+</script>
+</body>
+</html>
